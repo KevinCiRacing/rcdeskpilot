@@ -263,6 +263,22 @@ namespace Bonsai.Graphics
             fenceValues[frameIndex] = currentValue + 1;
         }
 
+        /// <summary>
+        /// Records commands into a temporary command list, executes them, and
+        /// blocks until finished. For one-shot work like resource uploads.
+        /// </summary>
+        public void ExecuteOneShot(Action<ID3D12GraphicsCommandList4> record)
+        {
+            using (ID3D12CommandAllocator allocator = device.CreateCommandAllocator(CommandListType.Direct))
+            using (ID3D12GraphicsCommandList4 list = device.CreateCommandList<ID3D12GraphicsCommandList4>(CommandListType.Direct, allocator))
+            {
+                record(list);
+                list.Close();
+                queue.ExecuteCommandList(list);
+                WaitIdle();
+            }
+        }
+
         /// <summary>Blocks until the GPU has drained all submitted work.</summary>
         public void WaitIdle()
         {

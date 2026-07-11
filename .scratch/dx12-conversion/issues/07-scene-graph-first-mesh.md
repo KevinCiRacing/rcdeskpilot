@@ -1,6 +1,6 @@
 # Scene Graph + first mesh: Assimp-loaded aircraft on screen
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 

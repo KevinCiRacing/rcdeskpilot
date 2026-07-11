@@ -16,5 +16,7 @@
     <PackageReference Include="AssimpNet" Version="4.1.0" />
     <!-- UI (ADR 0003, issue 10) -->
     <PackageReference Include="Hexa.NET.ImGui" Version="2.2.7" />
+    <!-- PNG/JPG/BMP decoding for Texture2D -->
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
 </Project>

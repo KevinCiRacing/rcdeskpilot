@@ -56,6 +56,19 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // Scene-graph demo/selftest (issue 07)
+            int sceneArg = Array.IndexOf(args, "--scene");
+            int sceneTestArg = Array.IndexOf(args, "--scenetest");
+            if (sceneArg >= 0 || sceneTestArg >= 0)
+            {
+                string repoRoot = FindRepoRoot();
+                string aircraftDir = System.IO.Path.Combine(repoRoot, "RCSim", "Aircraft", "extra");
+                string dataDir = System.IO.Path.Combine(repoRoot, "RCSim", "data");
+                string outDir = sceneTestArg >= 0 && sceneTestArg + 1 < args.Length && !args[sceneTestArg + 1].StartsWith("--")
+                    ? args[sceneTestArg + 1] : Environment.CurrentDirectory;
+                return SceneDemo.Run(aircraftDir, dataDir, sceneTestArg >= 0, outDir);
+            }
+
             bool selfTest = Array.IndexOf(args, "--selftest") >= 0;
             string screenshotPath = null;
             int screenshotArg = Array.IndexOf(args, "--screenshot");
@@ -179,6 +192,15 @@ float4 PSMain(PSInput input) : SV_TARGET
                 }
                 return 0;
             }
+        }
+
+        private static string FindRepoRoot()
+        {
+            var dir = new System.IO.DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            for (int i = 0; i < 8 && dir != null; i++, dir = dir.Parent)
+                if (System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "RCDeskPilot.sln")))
+                    return dir.FullName;
+            throw new InvalidOperationException("Repo root not found from " + AppDomain.CurrentDomain.BaseDirectory);
         }
 
         private static GraphicsDevice CreateDevice(Win32Window window)
