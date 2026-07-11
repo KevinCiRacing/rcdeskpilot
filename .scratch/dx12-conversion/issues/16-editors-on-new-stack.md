@@ -1,6 +1,6 @@
 # Editors on the new stack
 
-Status: ready-for-agent
+Status: resolved
 
 ## What to build
 
@@ -16,3 +16,13 @@ Bring the Aircraft Editor and Scenery Editor up on the new engine: WinForms host
 ## Blocked by
 
 - 13
+
+## Comments
+
+Resolved. Both editors are WinForms hosts embedding the DX12 renderer via their viewport panel's HWND (ADR 0002), each with a `--selftest` (run with `dotnet run --project RCSim.AircraftEditor -- --selftest` / `RCSim.SceneryEditor`).
+
+- Aircraft Editor: orbit-camera viewport rendering the aircraft with live control-surface/prop animation; every AircraftParameters field editable in a PropertyGrid (model rebuilds on change); the legacy GDI GraphControl compiled unchanged for lift/drag coefficient curves (point-drag editing included); Open/Save/Save As through the Sim's own reader/writer — selftest round-trips an edited save through `ReadParameters`.
+- Scenery Editor: the default field rendered live from the Sim's TerrainDefinition DataSet (ported to System.Numerics — the DataSet XML shape is unchanged, verified against the stock terrain.def: 7 gates, 4 thermals); right-click places trees/windmills/gates/thermals on ray-picked terrain, delete-nearest, Save writes terrain.def — selftest round-trips an added tree.
+- Shared sources are project links (AircraftParameters, interfaces, TerrainDefinition, AircraftVisual, FrameCapture) — nothing duplicated.
+
+Deviations: the legacy dialog-form suite (AircraftParametersForm, CoefficientsForm, wizards, ...) is replaced by the PropertyGrid + embedded graphs rather than ported form-by-form; the old panel-HWND-free DXUT hosting, ads and D3DX-font controls are gone. Scenery editor edits placement (not heightmap painting), matching the legacy editor's actual capability.

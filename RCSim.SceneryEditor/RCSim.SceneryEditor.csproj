@@ -1,32 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- Scenery Editor on the new stack (issue 16): WinForms host embedding
+       the DX12 renderer via a panel HWND (ADR 0002), editing the terrain.def
+       DataSet through the Sim's own TerrainDefinition. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>RCSim.SceneryEditor</RootNamespace>
     <AssemblyName>RCSim.SceneryEditor</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bonsai\Bonsai.csproj" />
+    <ProjectReference Include="..\Bonsai.Graphics\Bonsai.Graphics.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SceneryEditorMain.cs" />
     <!-- Shared Sim sources (compiled in, not copied) -->
-    <Compile Include="..\RCSim\Birds.cs" Link="Shared\Birds.cs" />
-    <Compile Include="..\RCSim\DataClasses\SceneryParameters.cs" Link="Shared\DataClasses\SceneryParameters.cs" />
-    <Compile Include="..\RCSim\Flag.cs" Link="Shared\Flag.cs" />
-    <Compile Include="..\RCSim\Gate.cs" Link="Shared\Gate.cs" />
-    <Compile Include="..\RCSim\LensFlare.cs" Link="Shared\LensFlare.cs" />
-    <Compile Include="..\RCSim\PhotoScenery.cs" Link="Shared\PhotoScenery.cs" />
-    <Compile Include="..\RCSim\Scenery.cs" Link="Shared\Scenery.cs" />
-    <Compile Include="..\RCSim\SceneryObject.cs" Link="Shared\SceneryObject.cs" />
     <Compile Include="..\RCSim\TerrainDefinition.cs" Link="Shared\TerrainDefinition.cs" />
-    <Compile Include="..\RCSim\ThermalVisual.cs" Link="Shared\ThermalVisual.cs" />
-    <Compile Include="..\RCSim\Tractor.cs" Link="Shared\Tractor.cs" />
-    <Compile Include="..\RCSim\Tree.cs" Link="Shared\Tree.cs" />
-    <Compile Include="..\RCSim\Vegetation.cs" Link="Shared\Vegetation.cs" />
-    <Compile Include="..\RCSim\Water.cs" Link="Shared\Water.cs" />
-    <Compile Include="..\RCSim\Weather.cs" Link="Shared\Weather.cs" />
-    <Compile Include="..\RCSim\Wind.cs" Link="Shared\Wind.cs" />
-    <Compile Include="..\RCSim\Windmill.cs" Link="Shared\Windmill.cs" />
-    <Compile Include="..\RCSim\WindSock.cs" Link="Shared\WindSock.cs" />
+    <Compile Include="..\Bonsai.Graphics.TestHost\FrameCapture.cs" Link="Shared\FrameCapture.cs" />
   </ItemGroup>
 </Project>

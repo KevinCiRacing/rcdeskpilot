@@ -9,6 +9,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- Legacy designer controls predate the WinForms serialization analyzer -->
+    <NoWarn>$(NoWarn);WFO1000</NoWarn>
     <ApplicationIcon>icon_blueprint_42.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
@@ -17,6 +19,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EditorMain.cs" />
+    <Compile Include="Dialogs\GraphControl.cs" />
+    <Compile Include="Dialogs\GraphControl.Designer.cs" />
     <!-- Shared Sim sources (compiled in, not copied) -->
     <Compile Include="..\RCSim\DataClasses\AircraftParameters.cs" Link="Shared\AircraftParameters.cs" />
     <Compile Include="..\RCSim\Interfaces\IAirplaneControl.cs" Link="Shared\IAirplaneControl.cs" />

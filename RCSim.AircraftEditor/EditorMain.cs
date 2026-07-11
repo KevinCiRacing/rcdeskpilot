@@ -44,6 +44,8 @@ namespace RCSim.AircraftEditor
         private Panel viewport;
         private PropertyGrid propertyGrid;
         private CheckBox animateBox;
+        private Dialogs.GraphControl liftGraph;
+        private Dialogs.GraphControl dragGraph;
         private Timer renderTimer;
 
         private GraphicsDevice device;
@@ -108,8 +110,9 @@ namespace RCSim.AircraftEditor
             {
                 Dock = DockStyle.Fill,
                 FixedPanel = FixedPanel.Panel2,
-                SplitterDistance = 900,
             };
+            // Size the side panel once the form has its real size.
+            Load += (s, e) => split.SplitterDistance = Math.Max(200, ClientSize.Width - 360);
 
             viewport = new Panel { Dock = DockStyle.Fill, BackColor = System.Drawing.Color.Black };
             viewport.MouseDown += (s, e) => lastMouse = e.Location;
@@ -128,7 +131,18 @@ namespace RCSim.AircraftEditor
             propertyGrid = new PropertyGrid { Dock = DockStyle.Fill, HelpVisible = true };
             propertyGrid.PropertyValueChanged += (s, e) => ReloadModel();
             animateBox = new CheckBox { Text = "Animate control surfaces", Dock = DockStyle.Bottom, Checked = true, Padding = new Padding(6) };
+
+            // Aerodynamics visualization: the legacy GDI graph control, unchanged.
+            liftGraph = new Dialogs.GraphControl { Dock = DockStyle.Bottom, Height = 140, GraphColor = System.Drawing.Color.Yellow };
+            dragGraph = new Dialogs.GraphControl { Dock = DockStyle.Bottom, Height = 140, GraphColor = System.Drawing.Color.Orange };
+            var liftLabel = new Label { Dock = DockStyle.Bottom, Text = "Lift coefficient / alpha", Height = 18 };
+            var dragLabel = new Label { Dock = DockStyle.Bottom, Text = "Drag coefficient / alpha", Height = 18 };
+
             split.Panel2.Controls.Add(propertyGrid);
+            split.Panel2.Controls.Add(liftLabel);
+            split.Panel2.Controls.Add(liftGraph);
+            split.Panel2.Controls.Add(dragLabel);
+            split.Panel2.Controls.Add(dragGraph);
             split.Panel2.Controls.Add(animateBox);
 
             Controls.Add(split);
@@ -197,6 +211,10 @@ namespace RCSim.AircraftEditor
             openFile = parPath;
             controls.AircraftParameters = parameters;
             propertyGrid.SelectedObject = parameters;
+            liftGraph.ValueList = parameters.LiftCoefficientPoints;
+            liftGraph.Lift = parameters.LiftCoefficientPoints;
+            liftGraph.Drag = parameters.DragCoefficientPoints;
+            dragGraph.ValueList = parameters.DragCoefficientPoints;
             Text = "R/C Desk Pilot - Aircraft Editor - " + Path.GetFileName(parPath);
             RebuildVisual();
         }
@@ -310,6 +328,13 @@ namespace RCSim.AircraftEditor
             byte[] pixels = FrameCapture.RenderAndReadback(device,
                 list => renderer.Render(list, camera, world), new Color4(0.45f, 0.65f, 0.85f, 1f));
             SavePng(pixels, Path.Combine(outDir, "editor_aircraft.png"));
+
+            // Whole-form capture (GDI side panel incl. the graph controls).
+            using (var formShot = new System.Drawing.Bitmap(Width, Height))
+            {
+                DrawToBitmap(formShot, new System.Drawing.Rectangle(0, 0, Width, Height));
+                formShot.Save(Path.Combine(outDir, "editor_form.png"), System.Drawing.Imaging.ImageFormat.Png);
+            }
 
             int debugErrors = device.ReportDebugMessages();
 

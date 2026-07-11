@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Data;
-using Microsoft.DirectX;
+using System.Numerics;
 using System.Windows.Forms;
 using System.Drawing;
 
@@ -241,6 +241,11 @@ namespace RCSim
                 new Vector3(ambientLight.R/255f, ambientLight.G/255f, ambientLight.B/255f),
                 new Vector3(sunLight.R/255f, sunLight.G/255f, sunLight.B/255f),
                 terrainLight);
+        }
+
+        public void AddThermal(Vector3 position, float strength, float size)
+        {
+            thermalTable.Rows.Add(position, strength, size);
         }
 
         public void AddWater(Vector3 position, float size)
