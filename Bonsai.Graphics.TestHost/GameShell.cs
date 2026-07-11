@@ -113,6 +113,8 @@ namespace Bonsai.Graphics.TestHost
             string pickedScenery = "default";
             FlightSession session = null;
             RaceGame race = null;
+            ScareCrowGame scarecrow = null;
+            BombingTarget bombing = null;
             DemoPlayback demo = null;
             var recorder = new FlightRecorder();
             bool quit = false;
@@ -122,7 +124,7 @@ namespace Bonsai.Graphics.TestHost
 
             // Test assertions
             bool sawFlying = false, sawAirborne = false, windReachedModel = false, backToMenu = false;
-            bool sawSettings = false, sawSmoke = false, raceStarts = false, demoPlays = false;
+            bool sawSettings = false, sawSmoke = false, raceStarts = false, demoPlays = false, actorsWork = false;
             Vector3 demoPosA = default;
             byte[] shotMenu = null, shotFlight = null;
 
@@ -137,6 +139,8 @@ namespace Bonsai.Graphics.TestHost
             {
                 recorder.Stop();
                 if (race != null) { race.Dispose(); race = null; }
+                if (scarecrow != null) { scarecrow.Dispose(); scarecrow = null; }
+                if (bombing != null) { bombing.Dispose(); bombing = null; }
                 if (session != null) { session.Dispose(); session = null; }
                 kbThrottle = kbElevator = kbAileron = kbRudder = 0;
                 screen = Screen.MainMenu;
@@ -193,6 +197,18 @@ namespace Bonsai.Graphics.TestHost
                         if (session.Altitude > 10f) sawAirborne = true;
                         if (frame == 200) session.SmokeEmitting = true;
                         if (frame > 260 && session.SmokeParticles > 10) sawSmoke = true;
+                        if (frame == 320)
+                        {
+                            // Scarecrow/birds + bombing target logic, headless.
+                            string dd = Path.Combine(repoRoot, "RCSim", "data");
+                            using (var sc = new ScareCrowGame(device, renderer, session.World, dd))
+                            using (var bt = new BombingTarget(device, renderer, session.World, dd))
+                            {
+                                for (int i = 0; i < 120; i++)
+                                    sc.Update(new Vector3(0, 10000, 0), flightCamera.Position, 10.0 + i / 60.0, 1f / 60f);
+                                actorsWork = sc.StatusText != null && sc.CropsLeft <= 100.0 && !sc.GameOver;
+                            }
+                        }
                         if (frame == 300)
                         {
                             // Race logic: a synthetic path through gate 0 must start the clock.
@@ -243,6 +259,8 @@ namespace Bonsai.Graphics.TestHost
                     Vector3 aircraftPosition = session.AircraftPosition;
                     if (race != null)
                         race.Update(aircraftPosition, frame / 60.0);
+                    if (scarecrow != null)
+                        scarecrow.Update(aircraftPosition, flightCamera.Position, frame / 60.0, 1f / 60f);
                     recorder.Sample(frame / 60.0, session);
                     flightCamera.Target = aircraftPosition;
                     float distance = Vector3.Distance(flightCamera.Position, aircraftPosition);
@@ -276,7 +294,7 @@ namespace Bonsai.Graphics.TestHost
                 {
                     FlightDemo.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
                     DrawWeatherPanel(session.Wind, device, settings);
-                    DrawRacePanel(ref race, session, device, renderer, repoRoot, pickedScenery, frame / 60.0);
+                    DrawGamePanel(ref race, ref scarecrow, ref bombing, session, device, renderer, repoRoot, pickedScenery, frame / 60.0);
                     DrawRecorderPanel(recorder, session, outDir, device);
                 }
                 else if (screen == Screen.Settings)
@@ -334,12 +352,13 @@ namespace Bonsai.Graphics.TestHost
             Console.WriteLine("wind -> model   : {0}", windReachedModel ? "OK" : "FAILED");
             Console.WriteLine("smoke trail     : {0}", sawSmoke ? "OK" : "FAILED");
             Console.WriteLine("race clock      : {0}", raceStarts ? "OK" : "FAILED");
+            Console.WriteLine("scarecrow/birds : {0}", actorsWork ? "OK" : "FAILED");
             Console.WriteLine("recorder r/t    : {0}", recordingWorks ? "OK" : "FAILED");
             Console.WriteLine("menu demo plays : {0}", demoPlays ? "OK" : "FAILED");
             Console.WriteLine("flight -> menu  : {0}", backToMenu ? "OK" : "FAILED");
             Console.WriteLine("debug errors    : {0}", debugErrors);
             bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke
-                && raceStarts && recordingWorks && demoPlays && backToMenu && debugErrors == 0;
+                && raceStarts && actorsWork && recordingWorks && demoPlays && backToMenu && debugErrors == 0;
             Console.WriteLine(pass ? "GAMETEST PASS" : "GAMETEST FAIL");
             return pass ? 0 : 1;
         }
@@ -469,34 +488,46 @@ namespace Bonsai.Graphics.TestHost
             ImGui.End();
         }
 
-        private static void DrawRacePanel(ref RaceGame race, FlightSession session, GraphicsDevice device,
-            SceneRenderer renderer, string repoRoot, string sceneryName, double time)
+        private static readonly string[] GameTypes = { "Free flight", "Racing", "Scarecrow", "Bombing" };
+
+        private static void DrawGamePanel(ref RaceGame race, ref ScareCrowGame scarecrow, ref BombingTarget bombing,
+            FlightSession session, GraphicsDevice device, SceneRenderer renderer, string repoRoot, string sceneryName, double time)
         {
+            string dataDir = Path.Combine(repoRoot, "RCSim", "data");
+
             ImGui.SetNextWindowPos(new Vector2(16, device.Height - 96), ImGuiCond.Once);
             ImGui.SetNextWindowSize(new Vector2(230, 80), ImGuiCond.Once);
-            ImGui.Begin("Race");
-            if (race == null)
+            ImGui.Begin("Game");
+            int current = race != null ? 1 : scarecrow != null ? 2 : bombing != null ? 3 : 0;
+            int picked = current;
+            ImGui.SetNextItemWidth(160);
+            if (ImGui.Combo("##gametype", ref picked, GameTypes, GameTypes.Length) && picked != current)
             {
-                if (ImGui.Button("Start race", new Vector2(160, 32)))
+                if (race != null) { race.Dispose(); race = null; }
+                if (scarecrow != null) { scarecrow.Dispose(); scarecrow = null; }
+                if (bombing != null) { bombing.Dispose(); bombing = null; }
+                switch (picked)
                 {
-                    string sceneryDir = Path.Combine(repoRoot, "RCSim", "data", "scenery", sceneryName);
-                    if (File.Exists(Path.Combine(sceneryDir, "terrain.def")))
-                    {
-                        race = new RaceGame(device, renderer, session.World, sceneryDir,
-                            Path.Combine(repoRoot, "RCSim", "data"));
-                        race.Restart(time);
-                    }
+                    case 1:
+                        string sceneryDir = Path.Combine(dataDir, "scenery", sceneryName);
+                        if (File.Exists(Path.Combine(sceneryDir, "terrain.def")))
+                        {
+                            race = new RaceGame(device, renderer, session.World, sceneryDir, dataDir);
+                            race.Restart(time);
+                        }
+                        break;
+                    case 2:
+                        scarecrow = new ScareCrowGame(device, renderer, session.World, dataDir);
+                        break;
+                    case 3:
+                        bombing = new BombingTarget(device, renderer, session.World, dataDir);
+                        break;
                 }
-            }
-            else if (ImGui.Button("Stop race", new Vector2(160, 32)))
-            {
-                race.Dispose();
-                race = null;
             }
             ImGui.End();
 
             // Centered game text (legacy CenterHud.ShowGameText).
-            string status = race != null ? race.StatusText : null;
+            string status = race != null ? race.StatusText : scarecrow != null ? scarecrow.StatusText : null;
             if (!string.IsNullOrEmpty(status))
             {
                 var io = ImGui.GetIO();

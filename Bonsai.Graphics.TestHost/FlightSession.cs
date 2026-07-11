@@ -37,6 +37,7 @@ namespace Bonsai.Graphics.TestHost
         private readonly Sound3D engineSound;
         private readonly SoundControllable variometer;
         private readonly ParticleSystem smoke;
+        private readonly Tractor tractor;
         private float physicsAccumulator;
         private double physicsTime;
         private double frameTime;
@@ -87,9 +88,10 @@ namespace Bonsai.Graphics.TestHost
             if (!photo)
                 AddThermalsFromTerrainDef(sceneryDir, wind);
 
-            // --- Windsock: flag.x cloth near the pilot (default field only) ---
+            // --- Field actors (default field only) ---
             if (!photo)
             {
+                tractor = new Tractor(device, renderer, World, dataDir);
                 string flagFile = Path.Combine(dataDir, "flag.x");
                 if (File.Exists(flagFile))
                 {
@@ -229,6 +231,9 @@ namespace Bonsai.Graphics.TestHost
                 variometer.Frequency = (int)(22100 - Math.Sign(climbRate) * Math.Sqrt(Math.Abs(climbRate)) * 1000);
                 variometer.Volume = Math.Min(100, (int)(Math.Abs(climbRate - 0.3f) * 100));
             }
+
+            if (tractor != null)
+                tractor.Update(frameTime, dt, Heightmap);
 
             // Smoke trail: emit just behind the aircraft, drifting with the wind.
             if (smoke != null)
