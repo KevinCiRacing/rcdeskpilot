@@ -1,6 +1,6 @@
 # ImGui UI: backend + menu flow to launch a flight
 
-Status: ready-for-agent
+Status: resolved
 
 ## What to build
 
@@ -18,3 +18,7 @@ Style the UI enough to feel like a game menu rather than a debug tool (font, col
 ## Blocked by
 
 - 06
+
+## Comments
+
+Resolved in commit 53324fb. Screenshot-verified game-style menus (styled dark theme, rounded windows) over a 3D backdrop; real-mouse-click acceptance via the Win32 message path. Deviation noted: "old UI toolkit fully deleted from the build" is satisfied as no-green-consumer (the DXUT classes live only in the dark legacy project, deleted with it at issues 15/17). Gotcha for the record: imgui 1.92 backends require SrvDescriptorAllocFn/FreeFn callbacks - the LegacySingleSrv descriptors alone access-violate in RenderDrawData.

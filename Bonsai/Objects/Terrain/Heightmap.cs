@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using Bonsai;
 using Bonsai.Core;
-using Microsoft.DirectX;
+using System.Numerics;
 
 namespace Bonsai.Objects.Terrain
 {

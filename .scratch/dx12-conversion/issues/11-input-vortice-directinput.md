@@ -1,6 +1,6 @@
 # Input: Transmitter + keyboard on Vortice.DirectInput
 
-Status: ready-for-agent
+Status: resolved
 
 ## What to build
 
@@ -18,3 +18,7 @@ Preserve the existing channel-mapping and calibration settings format so users' 
 ## Blocked by
 
 - 04
+
+## Comments
+
+Resolved in commit 566675f. Criteria: (1) verified with the machine's attached Xbox One controller - a true RC transmitter should be spot-checked when one is plugged in (same HID path); (2) keyboard bindings exposed via InputKey (the accumulate/decay flight logic itself lives in Player.cs and ports in issue 13); (3) settings format byte-compatible (same table/columns/enum order); (4) no Vortice/DirectInput types in the public API surface. Poll rate 339k/s far exceeds flight-loop needs.

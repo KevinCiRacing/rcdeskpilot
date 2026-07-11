@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 using System.Threading;
-using Microsoft.DirectX;
+using System.Numerics;
 
 namespace RCSim
 {

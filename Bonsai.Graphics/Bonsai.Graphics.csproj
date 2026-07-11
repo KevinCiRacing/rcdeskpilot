@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The DX12 renderer core (ADR 0002): host-agnostic - takes an HWND and
+       a size, never references WinForms/WPF. Kept separate from the legacy
+       Bonsai project so green code builds while the old engine is dark. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Bonsai.Graphics</RootNamespace>
+    <AssemblyName>Bonsai.Graphics</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Hexa.NET.ImGui.Backends" Version="1.0.18" />
+    <PackageReference Include="Vortice.Direct3D12" Version="3.6.2" />
+    <PackageReference Include="Vortice.DXGI" Version="3.6.2" />
+    <PackageReference Include="Vortice.Dxc" Version="3.6.2" />
+    <PackageReference Include="Vortice.DirectInput" Version="3.6.2" />
+    <PackageReference Include="Vortice.XAudio2" Version="3.6.2" />
+    <!-- Runtime .X/glTF/OBJ mesh import (ADR 0004, issue 07) -->
+    <PackageReference Include="AssimpNet" Version="4.1.0" />
+    <!-- UI (ADR 0003, issue 10) -->
+    <PackageReference Include="Hexa.NET.ImGui" Version="2.2.9" />
+    <!-- PNG/JPG/BMP decoding for Texture2D -->
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Renderer-independent engine sources shared with the legacy project -->
+    <Compile Include="..\Bonsai\Core\Utility.cs" Link="Legacy\Utility.cs" />
+    <Compile Include="..\Bonsai\Core\Exceptions.cs" Link="Legacy\Exceptions.cs" />
+    <Compile Include="..\Bonsai\Objects\Terrain\Heightmap.cs" Link="Legacy\Heightmap.cs" />
+  </ItemGroup>
+</Project>

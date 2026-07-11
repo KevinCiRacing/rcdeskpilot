@@ -2,8 +2,6 @@
 using System.IO;
 using System.Collections;
 using System.Runtime.InteropServices;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
 
 namespace Bonsai.Core
 {

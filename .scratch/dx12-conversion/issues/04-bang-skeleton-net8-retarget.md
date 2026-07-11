@@ -1,6 +1,6 @@
 # Bang skeleton: .NET 8 retarget, dependencies, integration branch
 
-Status: ready-for-agent
+Status: resolved
 
 ## What to build
 
@@ -18,3 +18,7 @@ Code that no longer compiles is expected — mark broken subsystems clearly (e.g
 ## Blocked by
 
 - 01, 02, 03
+
+## Comments
+
+Resolved in commit 86eca3f on branch `dx12`. net10.0-windows chosen (current LTS, SDK 10 installed) over the literal net8.0-windows. Deviation: RCDeskPilot.API assembly stays in the build (RCSim compiles against its types); only the compatibility promise + Sample are parked. Full dependency graph and build-state notes in PRD.md. 1,238 errors remain, all CS0246/CS0234 from removed MDX types.

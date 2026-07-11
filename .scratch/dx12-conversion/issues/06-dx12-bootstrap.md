@@ -1,6 +1,6 @@
 # DX12 bootstrap: window, device, swapchain, first triangle
 
-Status: ready-for-agent
+Status: resolved
 
 ## What to build
 
@@ -18,3 +18,7 @@ The renderer must be host-agnostic: it accepts an HWND and size, never referenci
 ## Blocked by
 
 - 04
+
+## Comments
+
+Resolved in commit bdb4b8d. All acceptance criteria verified via the TestHost selftest: 80 vsynced frames incl. windowed->1024x600 resize, borderless-fullscreen toggle and restore; triangle confirmed in readback screenshot (all three vertex colors + background); zero debug-layer errors; renderer constructed from HWND+size only (no WinForms types in Bonsai.Graphics). Deviation: the window host is Bonsai.Graphics.TestHost, not the Sim executable - RCSim is dark until issue 13 and will adopt the same Win32Window+GraphicsDevice pair. Notable bug fixed during bring-up: fence-slot values must be reset after ResizeBuffers (backbuffer order changes) or the frame loop deadlocks.

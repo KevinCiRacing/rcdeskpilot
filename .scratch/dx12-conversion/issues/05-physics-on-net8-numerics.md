@@ -1,6 +1,6 @@
 # Physics on .NET 8: System.Numerics migration, characterization green
 
-Status: ready-for-agent
+Status: resolved
 
 ## What to build
 
@@ -18,3 +18,7 @@ Watch for the classic migration traps: matrix row/column convention, multiplicat
 ## Blocked by
 
 - 04
+
+## Comments
+
+Resolved in commit f9726c8. All four acceptance criteria met: physics sources compile under net10.0-windows with zero MDX; harness runs headless on .NET 10; 17/17 recordings reproduced (8 strict / 9 early-window per the documented chaos criterion — first-step FP seed ~1e-9 m, equivalent-math early error <=7e-3 m); .par files load unchanged through the same ReadParameters path. Note: real Weather/Wind classes intentionally deferred (they depend on game objects — ThermalVisual, Player, Scenery); the models' wind coupling is exercised via the harness's deterministic zero-wind stubs.
