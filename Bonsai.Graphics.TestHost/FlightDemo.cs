@@ -30,8 +30,7 @@ namespace Bonsai.Graphics.TestHost
     /// </summary>
     internal static class FlightDemo
     {
-        private const float PhysicsStep = 0.002f;
-        private static readonly Vector3 PilotPosition = new Vector3(0.1f, 1.7f, -15.0f);
+        internal static readonly Vector3 PilotPosition = new Vector3(0.1f, 1.7f, -15.0f);
 
         public static int Run(string repoRoot, bool test, string outDir, string aircraftPar)
         {
@@ -63,36 +62,10 @@ namespace Bonsai.Graphics.TestHost
             Win32Window window, GraphicsDevice device, SceneRenderer renderer, ImGuiRenderer imgui,
             InputManager input, string sceneryDir, string dataDir)
         {
-            // --- World: the default scenery (terrain, sky, trees, objects) ---
-            var world = new SceneNode("world");
-            var billboards = new List<SceneNode>();
-            SceneNode windmillBlades;
-            Heightmap heightmap = SceneryDemo.BuildDefaultScenery(device, renderer, world, sceneryDir, dataDir, billboards, out windmillBlades);
-
-            // --- Aircraft: parameters -> physics + visual ---
-            var parameters = new AircraftParameters();
-            parameters.ReadParameters(aircraftPar);
-            IFlightModel model = parameters.Version == 2 ? new FlightModelWind2() : (IFlightModel)new FlightModelWind();
-            model.AircraftParameters = parameters;
-            model.UpdateConstants();
-            model.Heightmap = heightmap;
-            model.Water = new List<Water>();
-            model.Wind = Vector3.Zero;
-            ResetFlight(model);
-
-            var visual = new AircraftVisual(device, renderer, parameters, Path.GetDirectoryName(aircraftPar));
-            world.AddChild(visual.Root);
-            var controls = (IAirplaneControl)model;
-
-            // --- Engine audio: 3D emitter at the aircraft, pitch by throttle ---
-            Sound3D engineSound = null;
-            string engineWav = parameters.EngineSound != null
-                ? Path.Combine(Path.GetDirectoryName(aircraftPar), Path.GetFileName(parameters.EngineSound)) : null;
-            if (engineWav != null && File.Exists(engineWav))
-            {
-                engineSound = new Sound3D(engineWav);
-                engineSound.Play(true);
-            }
+            using var session = new FlightSession(device, renderer, repoRoot, aircraftPar, "default");
+            SceneNode world = session.World;
+            IFlightModel model = session.Model;
+            IAirplaneControl controls = session.Controls;
             AudioEngine.ListenerPosition = PilotPosition;
 
             // --- Pilot camera (legacy ObserverCamera: fixed pilot, zoom 1.5) ---
@@ -111,7 +84,6 @@ namespace Bonsai.Graphics.TestHost
 
             // --- Loop state ---
             int frame = 0;
-            float physicsAccumulator = 0;
             bool crashedShown = false;
             var shots = new List<(string name, byte[] pixels)>();
             float maxAltitude = 0;
@@ -125,7 +97,7 @@ namespace Bonsai.Graphics.TestHost
             window.KeyDown += key =>
             {
                 if (key == 0x1B) window.Dispose();
-                if (key == (int)InputKey.R && !test) { ResetFlight(model); }
+                if (key == (int)InputKey.R && !test) { session.Reset(); }
             };
 
             while (window.PumpMessages())
@@ -151,30 +123,11 @@ namespace Bonsai.Graphics.TestHost
                     KeyboardControls(input, controls, 1f / 60f, ref kbThrottle, ref kbElevator, ref kbAileron, ref kbRudder);
                 }
 
-                // --- Fixed-step physics (characterization-style stepping) ---
-                physicsAccumulator += 1f / 60f;
-                while (physicsAccumulator >= PhysicsStep)
-                {
-                    model.UpdateControls(PhysicsStep);
-                    if (parameters.Version == 2)
-                        ((FlightModelWind2)model).MoveScene(PhysicsStep);
-                    else
-                        ((FlightModelWind)model).MoveScene(PhysicsStep);
-                    physicsAccumulator -= PhysicsStep;
-                }
+                // --- Fixed-step physics + scene/audio updates ---
+                session.Step(1f / 60f, camera.Position);
 
-                // --- Flight model -> scene nodes ---
-                visual.UpdateTransform(model);
-                visual.UpdateSurfaces(controls, 1f / 60f);
-                if (windmillBlades != null)
-                {
-                    Vector3 pivot = windmillBlades.Mesh.BoundsCenter;
-                    windmillBlades.LocalTransform = Matrix4x4.CreateTranslation(-pivot)
-                        * Matrix4x4.CreateRotationZ(t * 2f) * Matrix4x4.CreateTranslation(pivot);
-                }
-
-                Vector3 aircraftPosition = new Vector3(-model.Y, -model.Z, -model.X);
-                float altitude = -model.Z;
+                Vector3 aircraftPosition = session.AircraftPosition;
+                float altitude = session.Altitude;
                 maxAltitude = Math.Max(maxAltitude, altitude);
                 if (altitude > 10f) sawAirborne = true;
                 if (model.Crashed && sawAirborne) sawCrash = true;
@@ -183,23 +136,6 @@ namespace Bonsai.Graphics.TestHost
                 camera.Target = aircraftPosition;
                 float distance = Vector3.Distance(camera.Position, aircraftPosition);
                 camera.FieldOfView = (float)Math.PI / 4 / Math.Max(1.5f, distance / 40f); // legacy-style zoom
-
-                // --- Billboards face the pilot ---
-                foreach (SceneNode tree in billboards)
-                {
-                    Vector3 position = tree.LocalTransform.Translation;
-                    float yaw = (float)Math.Atan2(camera.Position.X - position.X, camera.Position.Z - position.Z);
-                    tree.LocalTransform = Matrix4x4.CreateRotationY(yaw) * Matrix4x4.CreateTranslation(position);
-                }
-
-                // --- Audio follows the aircraft ---
-                if (engineSound != null)
-                {
-                    engineSound.Location = aircraftPosition;
-                    float hz = parameters.EngineMinFrequency
-                        + (float)controls.Throttle * (parameters.EngineMaxFrequency - parameters.EngineMinFrequency);
-                    engineSound.FrequencyRatio = Math.Max(0.1f, hz / 22050f);
-                }
 
                 // --- HUD ---
                 imgui.NewFrame();
@@ -218,13 +154,13 @@ namespace Bonsai.Graphics.TestHost
 
                 if (test)
                 {
-                    if (frame == 10) surfaceAtRest = visual.FirstSurfaceTransform;
-                    if (frame == 320 && !surfaceAtRest.Equals(visual.FirstSurfaceTransform)) surfacesMove = true;
+                    if (frame == 10) surfaceAtRest = session.FirstSurfaceTransform;
+                    if (frame == 320 && !surfaceAtRest.Equals(session.FirstSurfaceTransform)) surfacesMove = true;
                     if (frame == 60 || frame == 420 || frame == 800)
                         shots.Add(("flight_" + frame, CaptureFrame(device, renderer, imgui, camera, world, model, controls, altitude)));
                     if (sawCrash && !sawReset && frame > 500)
                     {
-                        ResetFlight(model);
+                        session.Reset();
                         if (!model.Crashed && -model.Z < 1f)
                             sawReset = true;
                     }
@@ -254,16 +190,8 @@ namespace Bonsai.Graphics.TestHost
             return pass ? 0 : 1;
         }
 
-        private static void ResetFlight(IFlightModel model)
-        {
-            model.Reset();
-            // Default start position (0, 0.05, 0) world -> NED (0, 0, -0.05).
-            model.X = 0; model.Y = 0; model.Z = -0.05f;
-            model.Crashed = false;
-        }
-
         /// <summary>Scripted autopilot for the selftest: take off, climb, then dive in.</summary>
-        private static void ScriptedControls(IAirplaneControl c, IFlightModel m, float t, ref bool sawCrash)
+        internal static void ScriptedControls(IAirplaneControl c, IFlightModel m, float t, ref bool sawCrash)
         {
             float altitude = -m.Z;
             float climb = -m.Velocity.Z;
@@ -285,7 +213,7 @@ namespace Bonsai.Graphics.TestHost
         }
 
         /// <summary>Legacy Player keyboard flight (accumulate/decay), via InputKey.</summary>
-        private static void KeyboardControls(InputManager input, IAirplaneControl c, float dt,
+        internal static void KeyboardControls(InputManager input, IAirplaneControl c, float dt,
             ref float kbThrottle, ref float kbElevator, ref float kbAileron, ref float kbRudder)
         {
             if (input.IsKeyDown(InputKey.NumPad9) || input.IsKeyDown(InputKey.PageUp))
@@ -320,7 +248,7 @@ namespace Bonsai.Graphics.TestHost
             c.Ailerons = kbAileron / 100.0;
         }
 
-        private static void DrawHud(IFlightModel model, IAirplaneControl controls, float altitude, double speed)
+        internal static void DrawHud(IFlightModel model, IAirplaneControl controls, float altitude, double speed)
         {
             ImGui.SetNextWindowPos(new Vector2(16, 16));
             ImGui.SetNextWindowSize(new Vector2(230, 130));

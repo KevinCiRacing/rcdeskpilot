@@ -56,6 +56,14 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // The game: chained menu -> flight flow (issue 15)
+            if (Array.IndexOf(args, "--game") >= 0 || Array.IndexOf(args, "--gametest") >= 0)
+            {
+                string gameOut = args.Length > 1 && !args[args.Length - 1].StartsWith("--")
+                    ? args[args.Length - 1] : Environment.CurrentDirectory;
+                return GameShell.Run(FindRepoRoot(), Array.IndexOf(args, "--gametest") >= 0, gameOut);
+            }
+
             // First flight (issue 13)
             if (Array.IndexOf(args, "--fly") >= 0 || Array.IndexOf(args, "--flytest") >= 0)
             {

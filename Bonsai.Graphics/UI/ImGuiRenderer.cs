@@ -19,6 +19,7 @@ namespace Bonsai.Graphics.UI
     {
         private const int HeapSlots = 64;
         private readonly GraphicsDevice device;
+        private readonly Win32Window window;
         private ID3D12DescriptorHeap srvHeap;
         private int srvSize;
         private int nextSlot = 1; // slot 0 = font atlas
@@ -49,6 +50,7 @@ namespace Bonsai.Graphics.UI
         public ImGuiRenderer(GraphicsDevice device, Win32Window window)
         {
             this.device = device;
+            this.window = window;
             context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
             var io = ImGui.GetIO();
@@ -119,6 +121,10 @@ namespace Bonsai.Graphics.UI
 
         public void Dispose()
         {
+            // Unhook before shutting the backend down: DestroyWindow later
+            // pumps messages through the hook, which must not reach the
+            // destroyed ImGui context.
+            window.MessageHook = null;
             device.WaitIdle();
             ImGuiImplD3D12.Shutdown();
             ImGuiImplWin32.Shutdown();

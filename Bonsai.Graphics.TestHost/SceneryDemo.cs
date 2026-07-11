@@ -277,7 +277,7 @@ namespace Bonsai.Graphics.TestHost
         #endregion
 
         #region Photo scenery construction
-        private static void BuildPhotoScenery(GraphicsDevice device, SceneRenderer renderer, SceneNode root, string sceneryDir)
+        internal static void BuildPhotoScenery(GraphicsDevice device, SceneRenderer renderer, SceneNode root, string sceneryDir)
         {
             XElement definition = XDocument.Load(Directory.GetFiles(sceneryDir, "*.par")[0]).Root.Element("definition");
             string Value(string name) { var e = definition.Element(name); return e != null ? e.Value : null; }
