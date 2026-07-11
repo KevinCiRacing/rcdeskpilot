@@ -143,7 +143,9 @@
     <Compile Include="ToolBoxForm.Designer.cs">
       <DependentUpon>ToolBoxForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="WindSock.cs" />
+    <Compile Include="..\RCSim\WindSock.cs">
+      <Link>WindSock.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bonsai\Bonsai.csproj">
