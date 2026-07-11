@@ -50,6 +50,18 @@ namespace Bonsai.Graphics
         public int FrameIndex { get { return frameIndex; } }
         public ID3D12Resource CurrentRenderTarget { get { return renderTargets[frameIndex]; } }
 
+        /// <summary>True when constructed without a window: uploads and one-shot
+        /// GPU work are available, but there is no swapchain to render to.</summary>
+        public bool IsHeadless { get { return swapChain == null; } }
+
+        /// <summary>Creates a headless device (no window/swapchain) for offscreen
+        /// work such as asset upload validation. BeginFrame/EndFrame/Resize are
+        /// unavailable; ExecuteOneShot and WaitIdle work normally.</summary>
+        public GraphicsDevice(bool enableDebugLayer)
+            : this(IntPtr.Zero, 1, 1, enableDebugLayer)
+        {
+        }
+
         public GraphicsDevice(IntPtr windowHandle, int width, int height, bool enableDebugLayer)
         {
             hwnd = windowHandle;
@@ -72,22 +84,25 @@ namespace Bonsai.Graphics
             device = CreateDeviceOnBestAdapter();
             queue = device.CreateCommandQueue(new CommandQueueDescription(CommandListType.Direct));
 
-            var swapChainDesc = new SwapChainDescription1
+            if (hwnd != IntPtr.Zero)
             {
-                Width = (uint)Width,
-                Height = (uint)Height,
-                Format = BackBufferFormat,
-                BufferCount = FrameCount,
-                BufferUsage = Usage.RenderTargetOutput,
-                SwapEffect = SwapEffect.FlipDiscard,
-                SampleDescription = SampleDescription.Default,
-            };
-            using (IDXGISwapChain1 swapChain1 = factory.CreateSwapChainForHwnd(queue, hwnd, swapChainDesc))
-            {
-                swapChain = swapChain1.QueryInterface<IDXGISwapChain3>();
+                var swapChainDesc = new SwapChainDescription1
+                {
+                    Width = (uint)Width,
+                    Height = (uint)Height,
+                    Format = BackBufferFormat,
+                    BufferCount = FrameCount,
+                    BufferUsage = Usage.RenderTargetOutput,
+                    SwapEffect = SwapEffect.FlipDiscard,
+                    SampleDescription = SampleDescription.Default,
+                };
+                using (IDXGISwapChain1 swapChain1 = factory.CreateSwapChainForHwnd(queue, hwnd, swapChainDesc))
+                {
+                    swapChain = swapChain1.QueryInterface<IDXGISwapChain3>();
+                }
+                // Fullscreen transitions are borderless (window-style based), never exclusive.
+                factory.MakeWindowAssociation(hwnd, WindowAssociationFlags.IgnoreAltEnter);
             }
-            // Fullscreen transitions are borderless (window-style based), never exclusive.
-            factory.MakeWindowAssociation(hwnd, WindowAssociationFlags.IgnoreAltEnter);
 
             rtvHeap = device.CreateDescriptorHeap(new DescriptorHeapDescription(DescriptorHeapType.RenderTargetView, FrameCount));
             dsvHeap = device.CreateDescriptorHeap(new DescriptorHeapDescription(DescriptorHeapType.DepthStencilView, 1));
@@ -103,8 +118,11 @@ namespace Bonsai.Graphics
             fenceValues[0] = 1;
             fenceEvent = new AutoResetEvent(false);
 
-            CreateSizeDependentResources();
-            frameIndex = (int)swapChain.CurrentBackBufferIndex;
+            if (swapChain != null)
+            {
+                CreateSizeDependentResources();
+                frameIndex = (int)swapChain.CurrentBackBufferIndex;
+            }
         }
 
         private ID3D12Device2 CreateDeviceOnBestAdapter()
@@ -189,7 +207,7 @@ namespace Bonsai.Graphics
         {
             width = Math.Max(1, width);
             height = Math.Max(1, height);
-            if (width == Width && height == Height)
+            if (swapChain == null || (width == Width && height == Height))
                 return;
 
             WaitIdle();
@@ -220,6 +238,8 @@ namespace Bonsai.Graphics
         /// </summary>
         public ID3D12GraphicsCommandList4 BeginFrame(Color4 clearColor)
         {
+            if (swapChain == null)
+                throw new InvalidOperationException("Headless device has no swapchain to render to.");
             commandAllocators[frameIndex].Reset();
             commandList.Reset(commandAllocators[frameIndex]);
 

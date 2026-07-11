@@ -64,6 +64,10 @@ float4 PSMain(PSInput input) : SV_TARGET
                 return FlightDemo.Run(FindRepoRoot(), Array.IndexOf(args, "--flytest") >= 0, flyOut, null);
             }
 
+            // Content smoke tests (issue 14): every .par through the pipeline, headless.
+            if (Array.IndexOf(args, "--contenttest") >= 0)
+                return ContentSmokeTest.Run(FindRepoRoot());
+
             // Audio selftest (issue 12)
             if (Array.IndexOf(args, "--audiotest") >= 0)
                 return AudioDemo.Run(FindRepoRoot());
