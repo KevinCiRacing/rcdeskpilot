@@ -24,7 +24,6 @@ namespace Bonsai.Objects.Cameras
         protected float aspectRatio = 1.0f;
         protected Vector3 upDirection = new Vector3(0, 1, 0);
         protected Plane[] frustumPlanes = new Plane[6];
-        protected float eyeSeperation = 0.05f;
         protected bool shake = false;
         protected double shakeStart = 0;
         protected double shakeDuration = 0;
@@ -402,20 +401,5 @@ namespace Bonsai.Objects.Cameras
         }
         #endregion
 
-        #region Anaglyph related methods
-        public virtual void OnFrameRenderLeft(Device device, double totalTime, float elapsedTime)
-        {
-            this.viewMatrix = Matrix.LookAtLH(lookFrom + (eyeSeperation/2f) * Left, lookAt, upDirection);
-            device.Transform.View = Matrix.LookAtLH(lookFrom + (eyeSeperation / 2f) * Left, lookAt, upDirection);
-            device.Transform.Projection = Matrix.PerspectiveFovLH(this.fieldOfView / zoomFactor, this.aspectRatio, this.near, this.far);
-        }
-
-        public virtual void OnFrameRenderRight(Device device, double totalTime, float elapsedTime)
-        {
-            this.viewMatrix = Matrix.LookAtLH(lookFrom - (eyeSeperation / 2f) * Left, lookAt, upDirection);
-            device.Transform.View = Matrix.LookAtLH(lookFrom - (eyeSeperation / 2f) * Left, lookAt, upDirection);
-            device.Transform.Projection = Matrix.PerspectiveFovLH(this.fieldOfView / zoomFactor, this.aspectRatio, this.near, this.far);
-        }
-        #endregion
     }
 }

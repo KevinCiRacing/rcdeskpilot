@@ -20,8 +20,6 @@ namespace RCSim
         private static XMesh meshFlag = null;
         private static ShaderBase flagShader = null;
         private static int count = 0;
-        private static string oldTexture = null;
-        private static string newTexture = null;
         private float flagTime = 0;
         #endregion
 
@@ -54,11 +52,6 @@ namespace RCSim
             this.AddChild(pole);
             this.AddChild(flag);
             this.Scale = new Microsoft.DirectX.Vector3(2f, 2f, 2f);
-            if (!string.IsNullOrEmpty(oldTexture) && !string.IsNullOrEmpty(newTexture))
-            {
-                meshFlag.ReplaceTexture(oldTexture, newTexture, true);
-                flagShader.SetVariable("Texture", meshFlag.GetTexture(0));
-            }
         }
         #endregion
 
@@ -131,28 +124,6 @@ namespace RCSim
 
         }
 
-        public static void ApplyAds(string oldTexture, string newTexture)
-        {
-            try
-            {
-                if (oldTexture == "ad2.jpg")
-                {
-                    Flag.oldTexture = oldTexture;
-                    Flag.newTexture = newTexture;                 
-                }
-                if (meshFlag != null)
-                {
-                    if (meshFlag.ReplaceTexture(oldTexture, newTexture, true))
-                    {
-                        Flag.oldTexture = oldTexture;
-                        Flag.newTexture = newTexture;
-                    }
-                }
-            }
-            catch
-            {
-            }
-        }
         #endregion
     }
 }

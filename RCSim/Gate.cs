@@ -133,8 +133,6 @@ namespace RCSim
             else
             {
                 XMesh xMesh = new XMesh(fileName);
-                if (Utility.MediaExists("ads/ad2.jpg"))
-                    xMesh.ReplaceTexture("ad2.jpg", "ads/ad2.jpg", true);                
                 this.Mesh = xMesh;
                 GlobalMesh globalMesh = new GlobalMesh();
                 globalMesh.Mesh = this.Mesh as XMesh;

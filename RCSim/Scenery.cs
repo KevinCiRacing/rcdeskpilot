@@ -206,47 +206,6 @@ namespace RCSim
             definition.Save(fileName);
         }
 
-        public void ApplyAds(string oldTexture, string newTexture)
-        {
-            try
-            {
-                foreach (SceneryObject o in sceneryObjects)
-                {
-                    try
-                    {
-                        if (o.Mesh is XMesh)
-                        {
-                            XMesh xMesh = o.Mesh as XMesh;
-                            if (xMesh != null)
-                            {
-                                xMesh.ReplaceTexture(oldTexture, newTexture, true);
-                            }
-                        }
-                    }
-                    catch
-                    {
-                    }
-                }
-                Flag.ApplyAds(oldTexture, newTexture);
-#if EDITOR
-                foreach (Gate o in gates)
-                {
-                    if (o.Mesh is XMesh)
-                    {
-                        XMesh xMesh = o.Mesh as XMesh;
-                        if (xMesh != null)
-                        {
-                            xMesh.ReplaceTexture(oldTexture, newTexture, true);
-                        }
-                    }
-                }
-#endif
-            }
-            catch
-            {
-            }
-        }
-
         public void SetSkyTexture(string fileName)
         {
             if ((sky != null) && (sky.Mesh != null) && (fileName != null))
@@ -458,12 +417,6 @@ namespace RCSim
                         Color.FromArgb((int)(255 * sunVector.X), (int)(255 * sunVector.Y), (int)(255 * sunVector.Z)),
                         (float)(dataRow["TerrainAmbient"]), (float)(dataRow["TerrainSun"]));
                 }
-
-                // Apply the ads
-                if (Utility.MediaExists("ads/ad1.jpg"))
-                    ApplyAds("ad.jpg", "ads/ad1.jpg");
-                if (Utility.MediaExists("ads/ad2.jpg"))
-                    ApplyAds("ad2.jpg", "ads/ad2.jpg");
 
                 lensFlare = new LensFlare();
             }

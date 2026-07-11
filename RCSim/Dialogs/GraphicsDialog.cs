@@ -25,8 +25,7 @@ namespace RCSim.Dialogs
         WaterRipplesDetail,
         ReflectionDetail,
         Resolution,
-        Compass,
-        Enable3D
+        Compass
     }
     #endregion
 
@@ -45,7 +44,6 @@ namespace RCSim.Dialogs
         private ComboBox comboReflection;
         private ComboBox comboResolution;
         private Checkbox checkCompass;
-        private Checkbox checkEnable3D;
         private bool changed = false;
         private bool fullscreen = false;
         private int resX = 0;
@@ -158,10 +156,6 @@ namespace RCSim.Dialogs
                 "Enable compass", 10, y += 30, 400, 20, Convert.ToBoolean(Settings.GetValue("CompassVisible", "true")));
             checkCompass.Changed += new EventHandler(checkCompass_Changed);
 
-            checkEnable3D = dialog.AddCheckBox((int)GraphicsDialogControlIds.Enable3D, 
-                "Enable anaglyph 3D (requires red/cyan glasses)", 10, y += 30, 400, 20, owner.Anaglyph);
-            checkEnable3D.Changed += new EventHandler(checkEnable3D_Changed);
-
             buttonBack = dialog.AddButton((int)GraphicsDialogControlIds.Back, "back to menu", 190, 435, 100, 31);
             buttonBack.Click += new EventHandler(buttonBack_Click);
 
@@ -173,11 +167,6 @@ namespace RCSim.Dialogs
         {
             Settings.SetValue("CompassVisible", checkCompass.IsChecked.ToString());
             owner.CenterHud.MapVisible = checkCompass.IsChecked;
-        }
-
-        void checkEnable3D_Changed(object sender, EventArgs e)
-        {
-            owner.Anaglyph = checkEnable3D.IsChecked;
         }
 
         void comboResolution_Changed(object sender, EventArgs e)

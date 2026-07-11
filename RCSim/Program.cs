@@ -46,14 +46,12 @@ namespace RCSim
         private InputManager inputManager = null;
         private Hud osd = null;
         private TransparentObjectManager transparentObjectManager = null;
-        private AdManager adManager = null;
         private double currentTime = 0;
         //private Vector3 pilotPosition = new Vector3(0.1f, 1.7f, -15.0f);
         private Demo demo = null;
         private ComputerPilots computerPilots = null;
         private bool setFullScreen = false;
         private Game game = null;
-        private bool anaglyph = false;
         private Vector3 pilotPosition = new Vector3(0.1f, + 1.7f, -15.0f);
         private Color ambientLightColor = Color.FromArgb(148, 148, 148);
         private Color sunLightColor = Color.FromArgb(148, 148, 148);        
@@ -667,137 +665,6 @@ namespace RCSim
         }
 
 
-        #region Anaglyph stuff
-        private enum EyeEnum
-        {
-            Left,
-            Right,
-            Both
-        }
-
-        private ShaderBase anaglyphShader = null;
-        private Surface leftSurface = null;
-        private Surface rightSurface = null;
-        private Surface screen = null;
-        private Texture leftTexture = null;
-        private Texture rightTexture = null;
-
-        public bool Anaglyph
-        {
-            get { return anaglyph; }
-            set
-            {
-                anaglyph = value;
-                if (anaglyph)
-                {
-                    if (anaglyphShader == null)
-                    {
-                        anaglyphShader = new ShaderBase("Anaglyph", "data/anaglyph.fx");
-                        anaglyphShader.SetTechnique("ShaderModel2");
-                    }
-                    UpdateAnaglyphSurfaces();
-                }
-                else
-                {
-                    CleanupAnaglyphStuff();
-                }
-            }
-        }
-
-        private void CleanupAnaglyphStuff()
-        {
-            if (leftTexture != null)
-            {
-                leftSurface.Dispose();
-                leftTexture.Dispose();
-                leftTexture = null;
-            }
-            if (rightTexture != null)
-            {
-                rightSurface.Dispose();
-                rightTexture.Dispose();
-                rightTexture = null;
-            }
-            if (screen != null)
-            {
-                screen.Dispose();
-                screen = null;
-            }
-            if (anaglyphShader != null)
-            {
-                anaglyphShader.Dispose();
-                anaglyphShader = null;
-            }
-        }
-
-        private void UpdateAnaglyphSurfaces()
-        {
-            if (leftTexture != null)
-            {
-                leftSurface.Dispose();
-                leftTexture.Dispose();
-                leftTexture = null;
-            }
-            if (rightTexture != null)
-            {
-                rightSurface.Dispose();
-                rightTexture.Dispose();
-                rightTexture = null;
-            }
-                        
-            int width = framework.Device.PresentationParameters.BackBufferWidth;
-            int height = framework.Device.PresentationParameters.BackBufferHeight;            
-            leftTexture = new Texture(framework.Device, width, height, 1, Usage.RenderTarget, Format.A8R8G8B8, Pool.Default);
-            rightTexture = new Texture(framework.Device, width, height, 1, Usage.RenderTarget, Format.A8R8G8B8, Pool.Default);
-            leftSurface = leftTexture.GetSurfaceLevel(0);
-            rightSurface = rightTexture.GetSurfaceLevel(0);
-        }
-
-        public void OnFrameRenderIntern(Microsoft.DirectX.Direct3D.Device device, double totalTime, float elapsedTime)
-        {
-            bool beginSceneCalled = false;
-
-            // Clear the render target and the zbuffer 
-            device.Clear(ClearFlags.ZBuffer | ClearFlags.Target, 0x00000000, 1.0f, 0);
-
-            try
-            {
-                device.BeginScene();
-                beginSceneCalled = true;
-
-                Framework.Instance.Device.RenderState.Ambient = Color.FromArgb(148, 148, 148);
-
-                scenery.OnFrameRender(device, totalTime, elapsedTime);
-                weather.OnFrameRender(device, totalTime, elapsedTime);
-                game.OnFrameRender(device, totalTime, elapsedTime);
-                if (demo.Playing)
-                {
-                    demo.OnFrameRender(device, totalTime, elapsedTime);
-                }
-                else if (!welcomeDialog.Visible)
-                {
-                    player.OnFrameRender(device, totalTime, elapsedTime);
-                    recorder.OnFrameRender(device, totalTime, elapsedTime);
-                    computerPilots.OnFrameRender(device, totalTime, elapsedTime);
-                }
-                transparentObjectManager.OnFrameRender(device, totalTime, elapsedTime);
-                scenery.OnFrameRenderFinal(device, totalTime, elapsedTime);
-                // Show UI
-                //hud.OnRender(elapsedTime);
-                if (!demo.Playing)
-                {
-                    centerHud.OnFrameRender(device, totalTime, elapsedTime);
-                    welcomeDialog.OnFrameRender(device, totalTime, elapsedTime);
-                }
-                //osd.OnFrameRender(device, totalTime, elapsedTime);
-            }
-            finally
-            {
-                if (beginSceneCalled)
-                    device.EndScene();
-            }
-        }
-
         internal void OnFrameRenderWater(Device device, double totalTime, float elapsedTime, bool reflection)
         {
             device.Clear(ClearFlags.ZBuffer | ClearFlags.Target, Color.Blue, 1.0f, 0);
@@ -836,103 +703,6 @@ namespace RCSim
             transparentObjectManager.OnFrameRender(device, totalTime, elapsedTime);
         }
 
-        /// <summary>
-        /// Performs a straight-forward render-to-texture using whatever states the device has set.
-        /// </summary>
-        /// <param name="width">The width of the render-target.</param>
-        /// <param name="height">The height of the render-target.</param>
-        void RenderToTexture(Device device, int width, int height)
-        {
-            CustomVertex.TransformedTextured[] vertices = new CustomVertex.TransformedTextured[4];
-
-            #region Vertex initialization
-            // To correctly map from texels->pixels we offset the coordinates by -0.5
-            vertices[0].Position = new Vector4(-0.5f, -0.5f, 0.0f, 1.0f);
-            vertices[0].Tu = 0.0f; vertices[0].Tv = 0.0f;
-
-            vertices[1].Position = new Vector4(width - 0.5f, -0.5f, 0.0f, 1.0f);
-            vertices[1].Tu = 1.0f; vertices[1].Tv = 0.0f;
-
-            vertices[2].Position = new Vector4(-0.5f, height - 0.5f, 0.0f, 1.0f);
-            vertices[2].Tu = 0.0f; vertices[2].Tv = 1.0f;
-
-            vertices[3].Position = new Vector4(width - 0.5f, height - 0.5f, 0.0f, 1.0f);
-            vertices[3].Tu = 1.0f; vertices[3].Tv = 1.0f;
-
-            #endregion
-
-            device.VertexShader = null;
-            device.VertexFormat = CustomVertex.TransformedTextured.Format;
-            device.DrawUserPrimitives(PrimitiveType.TriangleStrip, 2, vertices);
-        }
- 
-        private void OnFrameRender(Microsoft.DirectX.Direct3D.Device device, double totalTime, float elapsedTime, EyeEnum eye)
-        {
-            bool beginSceneCalled = false;
-            
-            if (eye == EyeEnum.Left)
-            {
-                device.Transform.World = Matrix.Identity;
-                device.SetRenderTarget(0, leftSurface);
-                framework.CurrentCamera.OnFrameRenderLeft(device, totalTime, elapsedTime);
-                OnFrameRenderIntern(device, totalTime, elapsedTime);
-                return;
-            }
-            else if (eye == EyeEnum.Right)
-            {
-                device.Transform.World = Matrix.Identity;
-                device.SetRenderTarget(0, rightSurface);
-                framework.CurrentCamera.OnFrameRenderRight(device, totalTime, elapsedTime);
-                OnFrameRenderIntern(device, totalTime, elapsedTime);
-                return;
-            }
-            // Clear the render target and the zbuffer 
-            device.Clear(ClearFlags.ZBuffer | ClearFlags.Target, 0x00000000, 1.0f, 0);
-
-            try
-            {
-                device.BeginScene();
-                beginSceneCalled = true;
-
-                Framework.Instance.Device.RenderState.Ambient = Color.FromArgb(148, 148, 148);
-
-                /*
-                if (anaglyphShader != null)
-                {
-                    anaglyphShader.SetGlobalParameters();
-                    anaglyphShader.WorldMatrix = Matrix.Identity;
-                    anaglyphShader.SetVariable("LeftTexture", leftTexture);
-                    anaglyphShader.SetVariable("RightTexture", rightTexture);
-                    int width = framework.Device.PresentationParameters.BackBufferWidth;
-                    int height = framework.Device.PresentationParameters.BackBufferHeight;
-                    anaglyphShader.SetVariable("TexelSize", new Vector3(1f/width, 1f/height, 1f));
-                    int passes = anaglyphShader.Effect.Begin(0);
-                    for (int iPass = 0; iPass < passes; iPass++)
-                    {
-                        anaglyphShader.Effect.BeginPass(iPass);
-
-                        RenderToTexture(device, width, height);
-                        anaglyphShader.Effect.EndPass();
-                    }
-                    anaglyphShader.Effect.End();
-                }
-                */
-                device.StretchRectangle(leftSurface, new Rectangle(0, 0, leftSurface.Description.Width, leftSurface.Description.Height),
-                    screen, new Rectangle(0, 0, screen.Description.Width / 2, screen.Description.Height), TextureFilter.None);
-                device.StretchRectangle(rightSurface, new Rectangle(0, 0, rightSurface.Description.Width, rightSurface.Description.Height),
-                    screen, new Rectangle(screen.Description.Width / 2, 0, screen.Description.Width / 2, screen.Description.Height), TextureFilter.None);
-                
-
-                //osd.OnFrameRender(device, totalTime, elapsedTime);
-            }
-            finally
-            {
-                if (beginSceneCalled)
-                    device.EndScene();
-            }
-        }
-
-        #endregion
 
 
         /// <summary>
@@ -965,15 +735,6 @@ namespace RCSim
 
             Bonsai.Utils.SplashScreen.SetSplashStatus("Loading weather");
             weather = new Weather(this);
-
-            if (anaglyph)
-            {
-                if (anaglyphShader == null)
-                {
-                    anaglyphShader = new ShaderBase("Anaglyph", "data/anaglyph.fx");
-                    anaglyphShader.SetTechnique("ShaderModel2");
-                }
-            }
 
             sun = new DirectionalLight(new Vector3(0.5f, -0.707f, 0.5f));
             sun.Color = System.Drawing.Color.FromArgb(148, 148, 148);
@@ -1063,11 +824,6 @@ namespace RCSim
             game = new Game(this);
             game.CurrentGameType = Game.GameType.None;
 
-            if (adManager == null)
-            {
-                adManager = new AdManager(scenery, this);
-            }
-            
             Bonsai.Utils.SplashScreen.SetSplashStatus("Almost done");
             // Hide the splashscreen
             Bonsai.Utils.SplashScreen.HideSplashScreen();
@@ -1127,10 +883,6 @@ namespace RCSim
             
             centerHud.SetSize(desc.Width, desc.Height);
             welcomeDialog.SetSize(desc.Width, desc.Height);
-            if (anaglyph)
-            {
-                UpdateAnaglyphSurfaces();
-            }
         }
 
         /// <summary>
@@ -1142,23 +894,6 @@ namespace RCSim
         /// </summary>
         private void OnLostDevice(object sender, EventArgs e)
         {
-            if (leftTexture != null)
-            {
-                leftSurface.Dispose();
-                leftTexture.Dispose();
-                leftTexture = null;
-            }
-            if (rightTexture != null)
-            {
-                rightSurface.Dispose();
-                rightTexture.Dispose();
-                rightTexture = null;
-            }
-            if (screen != null)
-            {
-                screen.Dispose();
-                screen = null;
-            }
         }
 
         /// <summary>
@@ -1311,17 +1046,6 @@ namespace RCSim
             if (scenery != null)
             {
                 scenery.RenderTextures(device, totalTime, elapsedTime);
-            }
-
-            if (anaglyph)
-            {
-                if (screen == null)
-                    screen = device.GetRenderTarget(0);
-                OnFrameRender(device, totalTime, elapsedTime, EyeEnum.Left);
-                OnFrameRender(device, totalTime, elapsedTime, EyeEnum.Right);
-                device.SetRenderTarget(0, screen);
-                OnFrameRender(device, totalTime, elapsedTime, EyeEnum.Both);
-                return;
             }
 
             if ((Player != null) && (Player.Reflection != null))
