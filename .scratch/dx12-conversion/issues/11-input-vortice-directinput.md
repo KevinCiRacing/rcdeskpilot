@@ -1,6 +1,6 @@
 # Input: Transmitter + keyboard on Vortice.DirectInput
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 

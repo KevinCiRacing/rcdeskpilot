@@ -34,6 +34,8 @@ namespace Bonsai.Graphics.Win32
         public event Action<int, int> Resized;
         /// <summary>Raised on WM_KEYDOWN/WM_SYSKEYDOWN with the virtual-key code.</summary>
         public event Action<int> KeyDown;
+        /// <summary>Raised on WM_KEYUP/WM_SYSKEYUP with the virtual-key code.</summary>
+        public event Action<int> KeyUp;
         public event Action Closed;
 
         public Win32Window(string title, int clientWidth, int clientHeight)
@@ -169,6 +171,14 @@ namespace Bonsai.Graphics.Win32
                         var keyDown = window.KeyDown;
                         if (keyDown != null)
                             keyDown((int)wParam);
+                        break;
+                    }
+                    case 0x0101: // WM_KEYUP
+                    case 0x0105: // WM_SYSKEYUP
+                    {
+                        var keyUp = window.KeyUp;
+                        if (keyUp != null)
+                            keyUp((int)wParam);
                         break;
                     }
                     case Win32Native.WM_CLOSE:

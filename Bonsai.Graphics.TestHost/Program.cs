@@ -56,6 +56,14 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // Input selftest (issue 11)
+            if (Array.IndexOf(args, "--inputtest") >= 0)
+            {
+                string inputOut = args.Length > 1 && !args[args.Length - 1].StartsWith("--")
+                    ? args[args.Length - 1] : Environment.CurrentDirectory;
+                return InputDemo.Run(inputOut);
+            }
+
             // ImGui menu flow demo/selftest (issue 10)
             if (Array.IndexOf(args, "--menu") >= 0 || Array.IndexOf(args, "--menutest") >= 0)
             {
