@@ -56,6 +56,10 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // Audio selftest (issue 12)
+            if (Array.IndexOf(args, "--audiotest") >= 0)
+                return AudioDemo.Run(FindRepoRoot());
+
             // Input selftest (issue 11)
             if (Array.IndexOf(args, "--inputtest") >= 0)
             {

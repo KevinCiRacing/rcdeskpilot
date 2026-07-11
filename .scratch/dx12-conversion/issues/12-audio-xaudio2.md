@@ -1,6 +1,6 @@
 # Audio: engine loops and 3D sound on XAudio2
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 

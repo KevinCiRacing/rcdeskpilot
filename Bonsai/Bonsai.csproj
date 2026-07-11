@@ -5,9 +5,4 @@
     <AssemblyName>Bonsai</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
-  <ItemGroup>
-    <!-- Input and audio replacements (ADR 0001); the renderer stack lives
-         in the new Bonsai.Graphics project. -->
-    <PackageReference Include="Vortice.XAudio2" Version="3.6.2" />
-  </ItemGroup>
 </Project>
