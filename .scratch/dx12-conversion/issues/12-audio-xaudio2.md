@@ -1,6 +1,6 @@
 # Audio: engine loops and 3D sound on XAudio2
 
-Status: claimed
+Status: resolved
 
 ## What to build
 
@@ -16,3 +16,7 @@ Port the sound layer to Vortice.XAudio2 + X3DAudio: WAV loading, looping engine 
 ## Blocked by
 
 - 04
+
+## Comments
+
+Resolved in commit fa20d92. All four criteria verified programmatically (voice states, sample counters, DSP matrices) plus audibly during the test run. Notes: legacy log-scale volume mapping approximated as linear amplitude (volume/100 - perceptual difference at low settings, revisit if the sound dialog feels off); Pan matrix assumes stereo output for the panned path; doppler and RPM pitch compose in Sound3D.FrequencyRatio.
