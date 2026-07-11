@@ -127,11 +127,13 @@ namespace RCSim
                         break;
                 }
 
+                // Legacy GameObject composition: surface meshes are modeled
+                // around their own hinge origin; rotate there, then translate
+                // to the hinge position (R * T, not a pivot conjugation).
                 Vector3 axis = definition.RotationAxis;
                 if (axis.LengthSquared() < 1e-6f)
                     axis = Vector3.UnitX;
                 part.Node.LocalTransform =
-                    Matrix4x4.CreateTranslation(-definition.Position) *
                     Matrix4x4.CreateFromAxisAngle(Vector3.Normalize(axis), angle) *
                     Matrix4x4.CreateTranslation(definition.Position);
             }

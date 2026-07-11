@@ -35,11 +35,18 @@ namespace Bonsai.Graphics.Assets
         {
             using (var context = new AssimpContext())
             {
+                // MakeLeftHanded restores the authored D3D coordinate system:
+                // Assimp converts .X (left-handed) to its right-handed
+                // convention on import, which mirrors every model nose-to-tail
+                // (and mirror-images decals). FlipWindingOrder keeps triangle
+                // orientation consistent with the mirror.
                 Assimp.Scene scene = context.ImportFile(path,
                     PostProcessSteps.Triangulate |
                     PostProcessSteps.GenerateSmoothNormals |
                     PostProcessSteps.PreTransformVertices |
-                    PostProcessSteps.JoinIdenticalVertices);
+                    PostProcessSteps.JoinIdenticalVertices |
+                    PostProcessSteps.MakeLeftHanded |
+                    PostProcessSteps.FlipWindingOrder);
                 if (scene == null || scene.MeshCount == 0)
                     throw new InvalidDataException("No meshes imported from " + path);
 
