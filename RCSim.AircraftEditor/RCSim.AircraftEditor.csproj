@@ -1,33 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- Aircraft Editor on the new stack (issue 16): WinForms host embedding
+       the DX12 renderer via a panel HWND (ADR 0002). Legacy dialog forms are
+       brought back incrementally; until then compilation is explicit. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>RCSim.AircraftEditor</RootNamespace>
     <AssemblyName>RCSim.AircraftEditor</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ApplicationIcon>icon_blueprint_42.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bonsai\Bonsai.csproj" />
+    <ProjectReference Include="..\Bonsai.Graphics\Bonsai.Graphics.csproj" />
     <ProjectReference Include="..\RCDeskPilot.API\RCDeskPilot.API.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EditorMain.cs" />
     <!-- Shared Sim sources (compiled in, not copied) -->
-    <Compile Include="..\RCSim\AirplaneModel.cs" Link="Shared\AirplaneModel.cs" />
-    <Compile Include="..\RCSim\Birds.cs" Link="Shared\Birds.cs" />
-    <Compile Include="..\RCSim\ControlSurface.cs" Link="Shared\ControlSurface.cs" />
-    <Compile Include="..\RCSim\DataClasses\AircraftParameters.cs" Link="Shared\DataClasses\AircraftParameters.cs" />
-    <Compile Include="..\RCSim\DataClasses\AirplaneState.cs" Link="Shared\DataClasses\AirplaneState.cs" />
-    <Compile Include="..\RCSim\Effects\Reflection.cs" Link="Shared\Effects\Reflection.cs" />
-    <Compile Include="..\RCSim\Effects\WaterRipple.cs" Link="Shared\Effects\WaterRipple.cs" />
-    <Compile Include="..\RCSim\Effects\WaterRipples.cs" Link="Shared\Effects\WaterRipples.cs" />
-    <Compile Include="..\RCSim\FlightModelWind.cs" Link="Shared\FlightModelWind.cs" />
-    <Compile Include="..\RCSim\FlightModelWind2.cs" Link="Shared\FlightModelWind2.cs" />
-    <Compile Include="..\RCSim\Interfaces\IAirplaneControl.cs" Link="Shared\Interfaces\IAirplaneControl.cs" />
-    <Compile Include="..\RCSim\Interfaces\IFlightModel.cs" Link="Shared\Interfaces\IFlightModel.cs" />
-    <Compile Include="..\RCSim\RecordedFlight.cs" Link="Shared\RecordedFlight.cs" />
-    <Compile Include="..\RCSim\Smoke.cs" Link="Shared\Smoke.cs" />
-    <Compile Include="..\RCSim\ThermalVisual.cs" Link="Shared\ThermalVisual.cs" />
-    <Compile Include="..\RCSim\Water.cs" Link="Shared\Water.cs" />
-    <Compile Include="..\RCSim\Weather.cs" Link="Shared\Weather.cs" />
-    <Compile Include="..\RCSim\Wind.cs" Link="Shared\Wind.cs" />
+    <Compile Include="..\RCSim\DataClasses\AircraftParameters.cs" Link="Shared\AircraftParameters.cs" />
+    <Compile Include="..\RCSim\Interfaces\IAirplaneControl.cs" Link="Shared\IAirplaneControl.cs" />
+    <Compile Include="..\RCSim\Interfaces\IFlightModel.cs" Link="Shared\IFlightModel.cs" />
+    <!-- New-stack aircraft visual + Sim object stand-ins (shared with the TestHost) -->
+    <Compile Include="..\Bonsai.Graphics.TestHost\AircraftVisual.cs" Link="Shared\AircraftVisual.cs" />
+    <Compile Include="..\Bonsai.Graphics.TestHost\RcSimStubs.cs" Link="Shared\RcSimStubs.cs" />
+    <Compile Include="..\Bonsai.Graphics.TestHost\FrameCapture.cs" Link="Shared\FrameCapture.cs" />
   </ItemGroup>
 </Project>
