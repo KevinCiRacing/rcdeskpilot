@@ -7,9 +7,21 @@
     <RootNamespace>Bonsai.Graphics.TestHost</RootNamespace>
     <AssemblyName>Bonsai.Graphics.TestHost</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);CHARACTERIZATION</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bonsai.Graphics\Bonsai.Graphics.csproj" />
+    <ProjectReference Include="..\RCDeskPilot.API\RCDeskPilot.API.csproj" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Flight physics sources for the first-flight host (issue 13) -->
+    <Compile Include="..\RCSim\DataClasses\AircraftParameters.cs" Link="Physics\AircraftParameters.cs" />
+    <Compile Include="..\RCSim\FlightModelWind.cs" Link="Physics\FlightModelWind.cs" />
+    <Compile Include="..\RCSim\FlightModelWind2.cs" Link="Physics\FlightModelWind2.cs" />
+    <Compile Include="..\RCSim\Interfaces\IAirplaneControl.cs" Link="Physics\IAirplaneControl.cs" />
+    <Compile Include="..\RCSim\Interfaces\IFlightModel.cs" Link="Physics\IFlightModel.cs" />
+    <Compile Include="..\Bonsai\Core\FrameworkTimer.cs" Link="Physics\FrameworkTimer.cs" />
+    <Compile Include="..\Bonsai\Core\NativeMethods.cs" Link="Physics\NativeMethods.cs" />
   </ItemGroup>
 </Project>

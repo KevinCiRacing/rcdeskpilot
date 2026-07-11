@@ -167,7 +167,7 @@ namespace Bonsai.Graphics.TestHost
         private static readonly Color4 SkyClear = new Color4(0.45f, 0.65f, 0.85f, 1f);
 
         #region Default scenery construction
-        private static Heightmap BuildDefaultScenery(GraphicsDevice device, SceneRenderer renderer,
+        internal static Heightmap BuildDefaultScenery(GraphicsDevice device, SceneRenderer renderer,
             SceneNode root, string sceneryDir, string dataDir, List<SceneNode> billboards, out SceneNode windmillBlades)
         {
             XElement definition = XDocument.Load(Path.Combine(sceneryDir, "default.par")).Root.Element("definition");

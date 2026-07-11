@@ -56,6 +56,14 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // First flight (issue 13)
+            if (Array.IndexOf(args, "--fly") >= 0 || Array.IndexOf(args, "--flytest") >= 0)
+            {
+                string flyOut = args.Length > 1 && !args[args.Length - 1].StartsWith("--")
+                    ? args[args.Length - 1] : Environment.CurrentDirectory;
+                return FlightDemo.Run(FindRepoRoot(), Array.IndexOf(args, "--flytest") >= 0, flyOut, null);
+            }
+
             // Audio selftest (issue 12)
             if (Array.IndexOf(args, "--audiotest") >= 0)
                 return AudioDemo.Run(FindRepoRoot());

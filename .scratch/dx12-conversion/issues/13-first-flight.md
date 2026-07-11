@@ -1,6 +1,6 @@
 # First flight: the integrating tracer bullet
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 
