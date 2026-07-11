@@ -35,9 +35,19 @@ namespace Bonsai.Graphics.TestHost
         private readonly List<SceneNode> billboards;
         private readonly SceneNode windmillBlades;
         private readonly Sound3D engineSound;
+        private readonly SoundControllable variometer;
+        private readonly ParticleSystem smoke;
         private float physicsAccumulator;
         private double physicsTime;
         private double frameTime;
+        private double lastVariometerUpdate;
+
+        /// <summary>Smoke trail toggle (legacy Player.ToggleSmoke).</summary>
+        public bool SmokeEmitting
+        {
+            get { return smoke != null && smoke.Emitting; }
+            set { if (smoke != null) smoke.Emitting = value; }
+        }
 
         public Vector3 AircraftPosition
         {
@@ -47,7 +57,7 @@ namespace Bonsai.Graphics.TestHost
         public float Altitude { get { return -Model.Z; } }
 
         public FlightSession(GraphicsDevice device, SceneRenderer renderer,
-            string repoRoot, string aircraftPar, string sceneryName)
+            string repoRoot, string aircraftPar, string sceneryName, GameSettings settings = null)
         {
             string dataDir = Path.Combine(repoRoot, "RCSim", "data");
             string sceneryDir = Path.Combine(dataDir, "scenery", sceneryName);
@@ -71,10 +81,30 @@ namespace Bonsai.Graphics.TestHost
             // --- Weather: wire the terrain + thermals into the shared Wind ---
             RCSim.Program.Instance.Heightmap = Heightmap;
             Wind wind = Wind;
-            wind.SoundPath = Path.Combine(dataDir, "wind.wav");
+            wind.SoundPath = settings == null || settings.GetBool("EnableWindSound", true)
+                ? Path.Combine(dataDir, "wind.wav") : null;
             wind.ClearThermalSources();
             if (!photo)
                 AddThermalsFromTerrainDef(sceneryDir, wind);
+
+            // --- Windsock: flag.x cloth near the pilot (default field only) ---
+            if (!photo)
+            {
+                string flagFile = Path.Combine(dataDir, "flag.x");
+                if (File.Exists(flagFile))
+                {
+                    var model = Bonsai.Graphics.Assets.ModelImporter.Load(device, flagFile);
+                    var sockNode = new SceneNode("windsock") { LocalTransform = Matrix4x4.CreateTranslation(1f, 1f, 0f) };
+                    foreach (var (mesh, material) in model.Parts)
+                    {
+                        material.Kind = MaterialKind.FlagCloth;
+                        if (material.Texture != null)
+                            renderer.RegisterTexture(material.Texture);
+                        sockNode.AddChild(new SceneNode { Mesh = mesh, Material = material });
+                    }
+                    World.AddChild(sockNode);
+                }
+            }
 
             // --- Aircraft ---
             Parameters = new AircraftParameters();
@@ -97,6 +127,37 @@ namespace Bonsai.Graphics.TestHost
             {
                 engineSound = new Sound3D(engineWav);
                 engineSound.Play(true);
+            }
+
+            // --- Variometer (legacy Player.UpdateVariometer) ---
+            string varioWav = Path.Combine(dataDir, "variometer.wav");
+            if (settings != null && settings.GetBool("EnableVariometer", false) &&
+                Parameters.HasVariometer && File.Exists(varioWav) && AudioEngine.IsInitialized)
+            {
+                variometer = new SoundControllable(varioWav);
+                variometer.Volume = 10;
+                variometer.Play(true);
+            }
+
+            // --- Smoke trail (legacy Smoke: SmokeDetail-scaled puff system) ---
+            string smokeTexture = Path.Combine(dataDir, "smokepuff.png");
+            if (File.Exists(smokeTexture))
+            {
+                int detail = settings != null ? settings.GetInt("SmokeDetail", 2) : 2;
+                smoke = new ParticleSystem(device, detail >= 3 ? 450 : detail == 2 ? 300 : 150)
+                {
+                    Life = detail >= 3 ? 4.5f : detail == 2 ? 3f : 1.5f,
+                    StartSize = 0.15f,
+                    GrowRate = 0.25f,
+                    VelocityJitter = 0.05f,
+                    EmitVelocity = Vector3.Zero,
+                    Emitting = false,
+                };
+                World.AddChild(new SceneNode("smoke")
+                {
+                    Mesh = smoke.Mesh,
+                    Material = new Material(Texture2D.Load(device, smokeTexture)) { Kind = MaterialKind.Particle },
+                });
             }
         }
 
@@ -159,7 +220,30 @@ namespace Bonsai.Graphics.TestHost
                     + (float)Controls.Throttle * (Parameters.EngineMaxFrequency - Parameters.EngineMinFrequency);
                 engineSound.FrequencyRatio = Math.Max(0.1f, hz / 22050f);
             }
+
+            // Variometer pitch/volume by climb rate, at the legacy 10 Hz cadence.
+            if (variometer != null && frameTime - lastVariometerUpdate > 0.1)
+            {
+                lastVariometerUpdate = frameTime;
+                float climbRate = Model.Velocity.Z; // NED: negative = climbing
+                variometer.Frequency = (int)(22100 - Math.Sign(climbRate) * Math.Sqrt(Math.Abs(climbRate)) * 1000);
+                variometer.Volume = Math.Min(100, (int)(Math.Abs(climbRate - 0.3f) * 100));
+            }
+
+            // Smoke trail: emit just behind the aircraft, drifting with the wind.
+            if (smoke != null)
+            {
+                Vector3 velocity = new Vector3(-Model.Velocity.Y, -Model.Velocity.Z, -Model.Velocity.X);
+                Vector3 back = velocity.LengthSquared() > 0.01f ? -Vector3.Normalize(velocity) : Vector3.Zero;
+                smoke.EmitPosition = AircraftPosition + back * (float)Controls.Throttle;
+                smoke.EmitRate = Math.Max(5f, (float)Controls.Throttle * 100f);
+                smoke.Wind = Wind.CurrentWind;
+                smoke.Update(dt, cameraPosition);
+            }
         }
+
+        /// <summary>Live smoke particle count (diagnostics).</summary>
+        public int SmokeParticles { get { return smoke != null ? smoke.AliveCount : 0; } }
 
         /// <summary>Diagnostics passthrough for the flytest.</summary>
         public Matrix4x4 FirstSurfaceTransform { get { return visual.FirstSurfaceTransform; } }
@@ -205,6 +289,11 @@ namespace Bonsai.Graphics.TestHost
             {
                 engineSound.Stop();
                 engineSound.Dispose();
+            }
+            if (variometer != null)
+            {
+                variometer.Stop();
+                variometer.Dispose();
             }
             Wind.ClearThermalSources();
             RCSim.Program.Instance.Heightmap = null;

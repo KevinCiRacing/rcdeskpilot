@@ -119,13 +119,14 @@ namespace Bonsai.Graphics.TestHost
 
             // Test assertions
             bool sawFlying = false, sawAirborne = false, windReachedModel = false, backToMenu = false;
-            bool sawSettings = false;
+            bool sawSettings = false, sawSmoke = false;
             byte[] shotMenu = null, shotFlight = null;
 
             window.KeyDown += key =>
             {
                 if (key == 0x1B) escPressed = true;
                 if (key == (int)InputKey.R && session != null && session.Model.Crashed) session.Reset();
+                if (key == (int)InputKey.S && session != null) session.SmokeEmitting = !session.SmokeEmitting;
             };
 
             void EndFlight()
@@ -138,7 +139,7 @@ namespace Bonsai.Graphics.TestHost
             void StartFlight()
             {
                 session = new FlightSession(device, renderer, repoRoot,
-                    pickedAircraft ?? Path.Combine(aircraftRoot, "extra", "Xtra.par"), pickedScenery);
+                    pickedAircraft ?? Path.Combine(aircraftRoot, "extra", "Xtra.par"), pickedScenery, settings);
                 ApplyWeatherSettings(settings, session.Wind);
                 screen = Screen.Flying;
             }
@@ -182,6 +183,8 @@ namespace Bonsai.Graphics.TestHost
                         if (frame > 130 && session.Model.Wind.Length() > 2.5f)
                             windReachedModel = true;
                         if (session.Altitude > 10f) sawAirborne = true;
+                        if (frame == 200) session.SmokeEmitting = true;
+                        if (frame > 260 && session.SmokeParticles > 10) sawSmoke = true;
                     }
                     if (frame == 440) { EndFlight(); }
                     if (frame == 445 && screen == Screen.MainMenu && session == null) backToMenu = true;
@@ -266,9 +269,10 @@ namespace Bonsai.Graphics.TestHost
             Console.WriteLine("settings persist: {0}", settingsPersisted ? "OK" : "FAILED");
             Console.WriteLine("airborne        : {0}", sawAirborne ? "OK" : "FAILED");
             Console.WriteLine("wind -> model   : {0}", windReachedModel ? "OK" : "FAILED");
+            Console.WriteLine("smoke trail     : {0}", sawSmoke ? "OK" : "FAILED");
             Console.WriteLine("flight -> menu  : {0}", backToMenu ? "OK" : "FAILED");
             Console.WriteLine("debug errors    : {0}", debugErrors);
-            bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && backToMenu && debugErrors == 0;
+            bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke && backToMenu && debugErrors == 0;
             Console.WriteLine(pass ? "GAMETEST PASS" : "GAMETEST FAIL");
             return pass ? 0 : 1;
         }

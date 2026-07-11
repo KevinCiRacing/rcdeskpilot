@@ -36,6 +36,9 @@ namespace Bonsai.Graphics.Rendering
         public float GrowRate { get; set; } = 0.4f;
         public bool Emitting { get; set; } = true;
 
+        /// <summary>World-space wind added to every particle's drift (m/s).</summary>
+        public Vector3 Wind { get; set; }
+
         public ParticleSystem(GraphicsDevice device, int maxParticles, int seed = 1234)
         {
             MaxParticles = maxParticles;
@@ -56,7 +59,7 @@ namespace Bonsai.Graphics.Rendering
                     particles.RemoveAt(i);
                     continue;
                 }
-                p.Position += p.Velocity * dt;
+                p.Position += (p.Velocity + Wind) * dt;
                 p.Size += p.GrowRate * dt;
                 particles[i] = p;
             }
