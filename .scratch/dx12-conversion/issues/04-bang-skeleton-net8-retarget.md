@@ -1,6 +1,6 @@
 # Bang skeleton: .NET 8 retarget, dependencies, integration branch
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 
