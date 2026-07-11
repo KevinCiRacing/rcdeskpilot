@@ -113,6 +113,8 @@ namespace Bonsai.Graphics.TestHost
             string pickedScenery = "default";
             FlightSession session = null;
             RaceGame race = null;
+            DemoPlayback demo = null;
+            var recorder = new FlightRecorder();
             bool quit = false;
             bool escPressed = false;
             float kbThrottle = 0, kbElevator = 0, kbAileron = 0, kbRudder = 0;
@@ -120,7 +122,8 @@ namespace Bonsai.Graphics.TestHost
 
             // Test assertions
             bool sawFlying = false, sawAirborne = false, windReachedModel = false, backToMenu = false;
-            bool sawSettings = false, sawSmoke = false, raceStarts = false;
+            bool sawSettings = false, sawSmoke = false, raceStarts = false, demoPlays = false;
+            Vector3 demoPosA = default;
             byte[] shotMenu = null, shotFlight = null;
 
             window.KeyDown += key =>
@@ -132,6 +135,7 @@ namespace Bonsai.Graphics.TestHost
 
             void EndFlight()
             {
+                recorder.Stop();
                 if (race != null) { race.Dispose(); race = null; }
                 if (session != null) { session.Dispose(); session = null; }
                 kbThrottle = kbElevator = kbAileron = kbRudder = 0;
@@ -166,6 +170,8 @@ namespace Bonsai.Graphics.TestHost
                     if (frame == 10 && screen == Screen.Settings) { sawSettings = true; settings.SetInt("Volume", 77); }
                     if (frame == 14) screen = Screen.MainMenu;
                     if (frame == 20) { pickedAircraft = Path.Combine(aircraftRoot, "extra", "Xtra.par"); pickedScenery = "default"; StartFlight(); }
+                    if (frame == 40 && session != null) recorder.Start(Path.Combine(outDir, "gametest_flight.dat"), pickedAircraft);
+                    if (frame == 420) recorder.Stop();
                     if (screen == Screen.Flying && session != null)
                     {
                         sawFlying = true;
@@ -203,6 +209,9 @@ namespace Bonsai.Graphics.TestHost
                     }
                     if (frame == 440) { EndFlight(); }
                     if (frame == 445 && screen == Screen.MainMenu && session == null) backToMenu = true;
+                    if (frame == 450 && demo != null) demoPosA = demo.AircraftPosition;
+                    if (frame == 465 && demo != null && Vector3.Distance(demoPosA, demo.AircraftPosition) > 0.05f)
+                        demoPlays = true;
                     if (frame == 470) quit = true;
                 }
 
@@ -234,11 +243,31 @@ namespace Bonsai.Graphics.TestHost
                     Vector3 aircraftPosition = session.AircraftPosition;
                     if (race != null)
                         race.Update(aircraftPosition, frame / 60.0);
+                    recorder.Sample(frame / 60.0, session);
                     flightCamera.Target = aircraftPosition;
                     float distance = Vector3.Distance(flightCamera.Position, aircraftPosition);
                     flightCamera.FieldOfView = (float)Math.PI / 4 / Math.Max(1.5f, distance / 40f);
                     camera = flightCamera;
                     world = session.World;
+                }
+                else
+                {
+                    // Menu background: the demo flight over the default field.
+                    if (demo == null)
+                    {
+                        string demoDat = Path.Combine(repoRoot, "RCSim", "demo.dat");
+                        if (File.Exists(demoDat))
+                            demo = new DemoPlayback(device, renderer, repoRoot, demoDat);
+                    }
+                    if (demo != null)
+                    {
+                        demo.Update(frame / 60.0);
+                        world = demo.World;
+                        menuCamera.Position = FlightDemo.PilotPosition;
+                        menuCamera.Target = demo.AircraftPosition;
+                        float distance = Vector3.Distance(menuCamera.Position, demo.AircraftPosition);
+                        menuCamera.FieldOfView = (float)Math.PI / 4 / Math.Max(1.5f, distance / 40f);
+                    }
                 }
 
                 // --- UI ---
@@ -248,6 +277,7 @@ namespace Bonsai.Graphics.TestHost
                     FlightDemo.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
                     DrawWeatherPanel(session.Wind, device, settings);
                     DrawRacePanel(ref race, session, device, renderer, repoRoot, pickedScenery, frame / 60.0);
+                    DrawRecorderPanel(recorder, session, outDir, device);
                 }
                 else if (screen == Screen.Settings)
                 {
@@ -282,6 +312,21 @@ namespace Bonsai.Graphics.TestHost
             // Settings persistence: a fresh load of the file must see the value.
             bool settingsPersisted = new GameSettings(Path.Combine(outDir, "frameworkconfig.xml")).GetInt("Volume", 0) == 77;
 
+            // Recorder round-trip: play back what was just recorded.
+            bool recordingWorks = false;
+            string recordedFile = Path.Combine(outDir, "gametest_flight.dat");
+            if (File.Exists(recordedFile))
+            {
+                using (var playback = new RecordedFlight(recordedFile, repoRoot))
+                {
+                    playback.Update(0.0);
+                    Vector3 early = playback.Position;
+                    playback.Update(4.0);
+                    recordingWorks = playback.Playing && Vector3.Distance(early, playback.Position) > 1f
+                        && playback.AircraftPar.EndsWith("Xtra.par", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
             Console.WriteLine("menu -> flight  : {0}", sawFlying ? "OK" : "FAILED");
             Console.WriteLine("settings screen : {0}", sawSettings ? "OK" : "FAILED");
             Console.WriteLine("settings persist: {0}", settingsPersisted ? "OK" : "FAILED");
@@ -289,9 +334,12 @@ namespace Bonsai.Graphics.TestHost
             Console.WriteLine("wind -> model   : {0}", windReachedModel ? "OK" : "FAILED");
             Console.WriteLine("smoke trail     : {0}", sawSmoke ? "OK" : "FAILED");
             Console.WriteLine("race clock      : {0}", raceStarts ? "OK" : "FAILED");
+            Console.WriteLine("recorder r/t    : {0}", recordingWorks ? "OK" : "FAILED");
+            Console.WriteLine("menu demo plays : {0}", demoPlays ? "OK" : "FAILED");
             Console.WriteLine("flight -> menu  : {0}", backToMenu ? "OK" : "FAILED");
             Console.WriteLine("debug errors    : {0}", debugErrors);
-            bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke && raceStarts && backToMenu && debugErrors == 0;
+            bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke
+                && raceStarts && recordingWorks && demoPlays && backToMenu && debugErrors == 0;
             Console.WriteLine(pass ? "GAMETEST PASS" : "GAMETEST FAIL");
             return pass ? 0 : 1;
         }
@@ -458,6 +506,23 @@ namespace Bonsai.Graphics.TestHost
                 ImGui.Text(status);
                 ImGui.End();
             }
+        }
+
+        private static void DrawRecorderPanel(FlightRecorder recorder, FlightSession session, string outDir, GraphicsDevice device)
+        {
+            ImGui.SetNextWindowPos(new Vector2(260, device.Height - 96), ImGuiCond.Once);
+            ImGui.SetNextWindowSize(new Vector2(230, 80), ImGuiCond.Once);
+            ImGui.Begin("Recorder");
+            if (!recorder.Recording)
+            {
+                if (ImGui.Button("Record flight", new Vector2(160, 32)))
+                    recorder.Start(Path.Combine(outDir, "flight0.dat"), session.Parameters.FileName);
+            }
+            else if (ImGui.Button("Stop recording", new Vector2(160, 32)))
+            {
+                recorder.Stop();
+            }
+            ImGui.End();
         }
 
         private static readonly string[] DetailLevels = { "Low", "Medium", "High" };
