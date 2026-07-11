@@ -8,7 +8,7 @@ using Bonsai.Graphics.Scene;
 using RCSim.DataClasses;
 using RCSim.Interfaces;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>
     /// The aircraft's visual scene-node hierarchy, built from

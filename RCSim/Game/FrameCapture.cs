@@ -4,7 +4,7 @@ using Bonsai.Graphics;
 using Vortice.Direct3D12;
 using Vortice.Mathematics;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>Renders one frame and reads the back buffer into a tightly packed RGBA array.</summary>
     internal static class FrameCapture

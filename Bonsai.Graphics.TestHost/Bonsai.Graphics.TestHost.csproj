@@ -15,6 +15,8 @@
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The game runtime (lives in RCSim, the shipping Sim; issue 17) -->
+    <Compile Include="..\RCSim\Game\**\*.cs" Link="Game\%(Filename).cs" />
     <!-- Flight physics sources for the first-flight host (issue 13) -->
     <Compile Include="..\RCSim\DataClasses\AircraftParameters.cs" Link="Physics\AircraftParameters.cs" />
     <Compile Include="..\RCSim\FlightModelWind.cs" Link="Physics\FlightModelWind.cs" />

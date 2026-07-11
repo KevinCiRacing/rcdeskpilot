@@ -8,7 +8,7 @@ using Bonsai.Graphics.Scene;
 using RCSim.DataClasses;
 using RCSim.Interfaces;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>Control values fed from a recording (surface animation only).</summary>
     internal sealed class RecordedControls : IAirplaneControl
@@ -50,7 +50,7 @@ namespace Bonsai.Graphics.TestHost
             World = new SceneNode("demo_world");
             var billboards = new List<SceneNode>();
             SceneNode windmillBlades;
-            SceneryDemo.BuildDefaultScenery(device, renderer, World,
+            SceneryBuilder.BuildDefaultScenery(device, renderer, World,
                 Path.Combine(dataDir, "scenery", "default"), dataDir, billboards, out windmillBlades);
 
             recording = new RecordedFlight(demoPath, repoRoot);

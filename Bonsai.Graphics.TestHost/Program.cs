@@ -8,6 +8,8 @@ using Vortice.Dxc;
 using Vortice.DXGI;
 using Vortice.Mathematics;
 
+using RCSim;
+
 namespace Bonsai.Graphics.TestHost
 {
     /// <summary>

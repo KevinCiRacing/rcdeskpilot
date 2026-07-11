@@ -8,6 +8,8 @@ using Bonsai.Graphics.Scene;
 using Bonsai.Graphics.Win32;
 using Vortice.Mathematics;
 
+using RCSim;
+
 namespace Bonsai.Graphics.TestHost
 {
     /// <summary>

@@ -5,14 +5,16 @@ using System.Numerics;
 using System.Xml.Linq;
 using Bonsai.Graphics;
 using Bonsai.Graphics.Audio;
+using Bonsai.Graphics.Input;
 using Bonsai.Graphics.Rendering;
 using Bonsai.Graphics.Scene;
 using Bonsai.Objects.Terrain;
+using Hexa.NET.ImGui;
 using RCSim;
 using RCSim.DataClasses;
 using RCSim.Interfaces;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>
     /// One flyable session (issue 15): scenery world + aircraft physics/visual
@@ -69,13 +71,13 @@ namespace Bonsai.Graphics.TestHost
             billboards = new List<SceneNode>();
             if (photo)
             {
-                SceneryDemo.BuildPhotoScenery(device, renderer, World, sceneryDir);
+                SceneryBuilder.BuildPhotoScenery(device, renderer, World, sceneryDir);
                 Heightmap = new Heightmap(1000f); // photo fields are flat
                 windmillBlades = null;
             }
             else
             {
-                Heightmap = SceneryDemo.BuildDefaultScenery(device, renderer, World, sceneryDir, dataDir,
+                Heightmap = SceneryBuilder.BuildDefaultScenery(device, renderer, World, sceneryDir, dataDir,
                     billboards, out windmillBlades);
             }
 
@@ -283,6 +285,68 @@ namespace Bonsai.Graphics.TestHost
                         float.Parse(position.Element("Z").Value, ic)),
                     float.Parse(thermal.Element("Strength").Value, ic),
                     float.Parse(thermal.Element("Size").Value, ic));
+            }
+        }
+
+        /// <summary>Legacy fixed pilot location (ObserverCamera).</summary>
+        internal static readonly Vector3 PilotPosition = new Vector3(0.1f, 1.7f, -15.0f);
+
+        /// <summary>Legacy Player keyboard flight (accumulate/decay), via InputKey.</summary>
+        internal static void KeyboardControls(InputManager input, IAirplaneControl c, float dt,
+            ref float kbThrottle, ref float kbElevator, ref float kbAileron, ref float kbRudder)
+        {
+            if (input.IsKeyDown(InputKey.NumPad9) || input.IsKeyDown(InputKey.PageUp))
+                kbThrottle = Math.Min(100, kbThrottle + 75 * dt);
+            else if (input.IsKeyDown(InputKey.NumPad7) || input.IsKeyDown(InputKey.PageDown))
+                kbThrottle = Math.Max(-100, kbThrottle - 75 * dt);
+
+            if (input.IsKeyDown(InputKey.NumPad3) || input.IsKeyDown(InputKey.End))
+                kbRudder = Math.Min(100, kbRudder + 200 * dt);
+            else if (input.IsKeyDown(InputKey.NumPad1) || input.IsKeyDown(InputKey.Home))
+                kbRudder = Math.Max(-100, kbRudder - 200 * dt);
+            else if (Math.Abs(kbRudder) < 5) kbRudder = 0;
+            else kbRudder += kbRudder > 0 ? -350 * dt : 350 * dt;
+
+            if (input.IsKeyDown(InputKey.NumPad2) || input.IsKeyDown(InputKey.DownArrow))
+                kbElevator = Math.Min(100, kbElevator + 300 * dt);
+            else if (input.IsKeyDown(InputKey.NumPad8) || input.IsKeyDown(InputKey.UpArrow))
+                kbElevator = Math.Max(-100, kbElevator - 300 * dt);
+            else if (Math.Abs(kbElevator) < 5) kbElevator = 0;
+            else kbElevator += kbElevator > 0 ? -350 * dt : 350 * dt;
+
+            if (input.IsKeyDown(InputKey.NumPad4) || input.IsKeyDown(InputKey.LeftArrow))
+                kbAileron = Math.Max(-100, kbAileron - 75 * dt);
+            else if (input.IsKeyDown(InputKey.NumPad6) || input.IsKeyDown(InputKey.RightArrow))
+                kbAileron = Math.Min(100, kbAileron + 75 * dt);
+            else if (Math.Abs(kbAileron) < 5) kbAileron = 0;
+            else kbAileron += kbAileron > 0 ? -450 * dt : 450 * dt;
+
+            c.Throttle = kbThrottle / 100.0;
+            c.Rudder = kbRudder / 100.0;
+            c.Elevator = kbElevator / 100.0;
+            c.Ailerons = kbAileron / 100.0;
+        }
+
+        internal static void DrawHud(IFlightModel model, IAirplaneControl controls, float altitude, double speed)
+        {
+            ImGui.SetNextWindowPos(new Vector2(16, 16));
+            ImGui.SetNextWindowSize(new Vector2(230, 130));
+            ImGui.Begin("Flight", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse);
+            ImGui.Text(string.Format("Throttle {0,4:F0} %", controls.Throttle * 100));
+            ImGui.Text(string.Format("Speed    {0,4:F1} m/s", speed));
+            ImGui.Text(string.Format("Altitude {0,4:F1} m", altitude));
+            ImGui.Text(model.TouchedDown ? "on ground" : "airborne");
+            ImGui.End();
+
+            if (model.Crashed)
+            {
+                var io = ImGui.GetIO();
+                ImGui.SetNextWindowPos(new Vector2(io.DisplaySize.X / 2 - 130, io.DisplaySize.Y / 2 - 40));
+                ImGui.SetNextWindowSize(new Vector2(260, 80));
+                ImGui.Begin("Crashed!", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse);
+                ImGui.Text("You crashed!");
+                ImGui.Text("Press R to reset.");
+                ImGui.End();
             }
         }
 

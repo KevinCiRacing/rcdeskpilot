@@ -3,7 +3,7 @@ using System.IO;
 using System.Numerics;
 using RCSim.Interfaces;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>
     /// The legacy .dat flight-recording format (FlightRecorder/RecordedFlight/

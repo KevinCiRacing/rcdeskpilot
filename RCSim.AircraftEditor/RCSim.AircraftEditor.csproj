@@ -26,8 +26,8 @@
     <Compile Include="..\RCSim\Interfaces\IAirplaneControl.cs" Link="Shared\IAirplaneControl.cs" />
     <Compile Include="..\RCSim\Interfaces\IFlightModel.cs" Link="Shared\IFlightModel.cs" />
     <!-- New-stack aircraft visual + Sim object stand-ins (shared with the TestHost) -->
-    <Compile Include="..\Bonsai.Graphics.TestHost\AircraftVisual.cs" Link="Shared\AircraftVisual.cs" />
-    <Compile Include="..\Bonsai.Graphics.TestHost\RcSimStubs.cs" Link="Shared\RcSimStubs.cs" />
-    <Compile Include="..\Bonsai.Graphics.TestHost\FrameCapture.cs" Link="Shared\FrameCapture.cs" />
+    <Compile Include="..\RCSim\Game\AircraftVisual.cs" Link="Shared\AircraftVisual.cs" />
+    <Compile Include="..\RCSim\Game\RcSimStubs.cs" Link="Shared\RcSimStubs.cs" />
+    <Compile Include="..\RCSim\Game\FrameCapture.cs" Link="Shared\FrameCapture.cs" />
   </ItemGroup>
 </Project>

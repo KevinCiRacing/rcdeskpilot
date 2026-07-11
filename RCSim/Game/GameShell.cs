@@ -13,7 +13,7 @@ using Hexa.NET.ImGui;
 using RCSim.Interfaces;
 using Vortice.Mathematics;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>
     /// Issue 15: the chained game flow. One window hosts the whole session:
@@ -98,14 +98,14 @@ namespace Bonsai.Graphics.TestHost
             };
             var flightCamera = new Camera
             {
-                Position = FlightDemo.PilotPosition,
+                Position = FlightSession.PilotPosition,
                 FieldOfView = (float)Math.PI / 4 / 1.5f,
                 AspectRatio = (float)device.Width / device.Height,
                 NearPlane = 0.1f,
                 FarPlane = 10000f,
             };
             window.Resized += (w, h) => { menuCamera.AspectRatio = flightCamera.AspectRatio = (float)w / h; };
-            AudioEngine.ListenerPosition = FlightDemo.PilotPosition;
+            AudioEngine.ListenerPosition = FlightSession.PilotPosition;
 
             // --- Shell state ---
             Screen screen = Screen.MainMenu;
@@ -278,7 +278,7 @@ namespace Bonsai.Graphics.TestHost
                     }
                     else
                     {
-                        FlightDemo.KeyboardControls(input, session.Controls, 1f / 60f,
+                        FlightSession.KeyboardControls(input, session.Controls, 1f / 60f,
                             ref kbThrottle, ref kbElevator, ref kbAileron, ref kbRudder);
                     }
                 }
@@ -340,7 +340,7 @@ namespace Bonsai.Graphics.TestHost
                     {
                         demo.Update(frame / 60.0);
                         world = demo.World;
-                        menuCamera.Position = FlightDemo.PilotPosition;
+                        menuCamera.Position = FlightSession.PilotPosition;
                         menuCamera.Target = demo.AircraftPosition;
                         float distance = Vector3.Distance(menuCamera.Position, demo.AircraftPosition);
                         menuCamera.FieldOfView = (float)Math.PI / 4 / Math.Max(1.5f, distance / 40f);
@@ -351,7 +351,7 @@ namespace Bonsai.Graphics.TestHost
                 imgui.NewFrame();
                 if (screen == Screen.Flying && session != null)
                 {
-                    FlightDemo.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
+                    FlightSession.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
                     DrawWeatherPanel(session.Wind, device, settings);
                     DrawGamePanel(ref race, ref scarecrow, ref bombing, session, device, renderer, repoRoot, pickedScenery, frame / 60.0);
                     DrawRecorderPanel(recorder, session, outDir, device);
@@ -779,7 +779,7 @@ namespace Bonsai.Graphics.TestHost
             Camera camera, FlightSession session, GameSettings settings)
         {
             imgui.NewFrame();
-            FlightDemo.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
+            FlightSession.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
             DrawWeatherPanel(session.Wind, device, settings);
             return FrameCapture.RenderAndReadback(device, list =>
             {

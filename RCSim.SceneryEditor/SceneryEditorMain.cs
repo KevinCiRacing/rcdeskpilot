@@ -7,7 +7,6 @@ using System.Xml.Linq;
 using Bonsai.Graphics;
 using Bonsai.Graphics.Rendering;
 using Bonsai.Graphics.Scene;
-using Bonsai.Graphics.TestHost;
 using Bonsai.Objects.Terrain;
 using RCSim;
 using Vortice.Mathematics;

@@ -9,7 +9,7 @@ using Bonsai.Graphics.Audio;
 using Bonsai.Graphics.Rendering;
 using Bonsai.Graphics.Scene;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>
     /// Pylon racing (legacy Race/Gate port): fly through the numbered gates in

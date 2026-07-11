@@ -1,20 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- R/C Desk Pilot: the Sim on the new stack (issue 17). Legacy MDX9-era
+       sources in this directory are kept for reference but not compiled;
+       the game runtime lives in Game\ on Bonsai.Graphics (ADR 0001/0002). -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>RCSim</RootNamespace>
     <AssemblyName>RCSim</AssemblyName>
-    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- CHARACTERIZATION guards legacy Framework debug hooks in the flight models -->
+    <DefineConstants>$(DefineConstants);CHARACTERIZATION</DefineConstants>
     <ApplicationIcon>icon42.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Bonsai\Bonsai.csproj" />
+    <ProjectReference Include="..\Bonsai.Graphics\Bonsai.Graphics.csproj" />
     <ProjectReference Include="..\RCDeskPilot.API\RCDeskPilot.API.csproj" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Game content copied beside the executable -->
-    <None Include="Aircraft\**" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="data\**" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="demo.dat" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="icon16.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="App.cs" />
+    <Compile Include="Game\**\*.cs" />
+    <!-- Flight physics + data classes (shared with characterization/editors) -->
+    <Compile Include="DataClasses\AircraftParameters.cs" />
+    <Compile Include="FlightModelWind.cs" />
+    <Compile Include="FlightModelWind2.cs" />
+    <Compile Include="Interfaces\IAirplaneControl.cs" />
+    <Compile Include="Interfaces\IFlightModel.cs" />
+    <Compile Include="..\Bonsai\Core\FrameworkTimer.cs" Link="Engine\FrameworkTimer.cs" />
+    <Compile Include="..\Bonsai\Core\NativeMethods.cs" Link="Engine\NativeMethods.cs" />
   </ItemGroup>
 </Project>

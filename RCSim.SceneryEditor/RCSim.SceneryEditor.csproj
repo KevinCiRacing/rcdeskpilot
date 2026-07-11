@@ -17,6 +17,6 @@
     <Compile Include="SceneryEditorMain.cs" />
     <!-- Shared Sim sources (compiled in, not copied) -->
     <Compile Include="..\RCSim\TerrainDefinition.cs" Link="Shared\TerrainDefinition.cs" />
-    <Compile Include="..\Bonsai.Graphics.TestHost\FrameCapture.cs" Link="Shared\FrameCapture.cs" />
+    <Compile Include="..\RCSim\Game\FrameCapture.cs" Link="Shared\FrameCapture.cs" />
   </ItemGroup>
 </Project>

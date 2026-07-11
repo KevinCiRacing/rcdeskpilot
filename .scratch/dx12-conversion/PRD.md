@@ -1,6 +1,6 @@
 # DX12 Conversion — PRD
 
-Status: in progress (integration branch: `dx12`)
+Status: COMPLETE — merged to master at issue 17's gate. Issues 01-17 resolved; follow-ups: 18 (deployment), 19 (post-merge cleanup).
 
 The plan of record lives in the ADRs ([0001](../../docs/adr/0001-big-bang-port-to-net8-dx12.md)–[0004](../../docs/adr/0004-runtime-assimp-for-x-assets.md))
 and the issue breakdown in `issues/`. Pre-phase (issues 01–03) landed on `master`

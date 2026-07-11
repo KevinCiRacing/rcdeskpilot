@@ -5,7 +5,6 @@ using System.Windows.Forms;
 using Bonsai.Graphics;
 using Bonsai.Graphics.Rendering;
 using Bonsai.Graphics.Scene;
-using Bonsai.Graphics.TestHost;
 using RCSim.DataClasses;
 using RCSim.Interfaces;
 using Vortice.Mathematics;

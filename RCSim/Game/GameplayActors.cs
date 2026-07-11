@@ -7,7 +7,7 @@ using Bonsai.Graphics.Rendering;
 using Bonsai.Graphics.Scene;
 using Bonsai.Objects.Terrain;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     internal static class ActorModels
     {

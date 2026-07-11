@@ -11,6 +11,8 @@ using Bonsai.Graphics.Win32;
 using Hexa.NET.ImGui;
 using Vortice.Mathematics;
 
+using RCSim;
+
 namespace Bonsai.Graphics.TestHost
 {
     /// <summary>

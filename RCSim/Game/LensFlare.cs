@@ -5,7 +5,7 @@ using Bonsai.Graphics;
 using Bonsai.Graphics.Rendering;
 using Bonsai.Graphics.Scene;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>
     /// Lens flare (legacy port): five textured billboards strung along the

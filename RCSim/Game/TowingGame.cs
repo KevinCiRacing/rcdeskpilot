@@ -7,7 +7,7 @@ using Bonsai.Graphics.Scene;
 using RCSim;
 using RCSim.DataClasses;
 
-namespace Bonsai.Graphics.TestHost
+namespace RCSim
 {
     /// <summary>
     /// Aerotow (legacy Towing port): the SF260 towplane flies the stock
