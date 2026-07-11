@@ -1,6 +1,6 @@
 # Effect Materials: water, cloth, transparency, particles
 
-Status: claimed
+Status: resolved
 
 ## What to build
 
@@ -16,3 +16,7 @@ The specialty Materials that made the old sim look alive, ported from their SM2/
 ## Blocked by
 
 - 08
+
+## Comments
+
+Resolved in commit 5d0e5b1. Screenshot-verified: mirror lake with cloud/flag reflections, rising smoke/thermal particles, waving cloth. Notes: refraction map from the legacy shader replaced by a fresnel-blended dull color (visual approximation, documented); ripples are analytic expanding rings in the shader (2 slots) rather than the old render-to-bump ripple sim; particle vertex alpha rides in Normal.x (documented pragmatism); dynamic particle VB is single-buffered upload heap (theoretical same-frame race, invisible in practice - flagged for the perf pass). Transparent sort is per-node, matching the old TransparentObjectManager granularity.
