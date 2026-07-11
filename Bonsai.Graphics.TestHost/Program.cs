@@ -56,6 +56,14 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // ImGui menu flow demo/selftest (issue 10)
+            if (Array.IndexOf(args, "--menu") >= 0 || Array.IndexOf(args, "--menutest") >= 0)
+            {
+                string menuOut = args.Length > 1 && !args[args.Length - 1].StartsWith("--")
+                    ? args[args.Length - 1] : Environment.CurrentDirectory;
+                return MenuDemo.Run(FindRepoRoot(), Array.IndexOf(args, "--menutest") >= 0, menuOut);
+            }
+
             // Effect materials demo/selftest (issue 09)
             if (Array.IndexOf(args, "--effects") >= 0 || Array.IndexOf(args, "--effectstest") >= 0)
             {

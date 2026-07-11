@@ -1,6 +1,6 @@
 # ImGui UI: backend + menu flow to launch a flight
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 

@@ -26,6 +26,10 @@ namespace Bonsai.Graphics.Win32
         public bool IsMinimized { get { return isMinimized; } }
         public bool IsFullscreen { get { return isFullscreen; } }
 
+        /// <summary>Optional first-chance message hook (e.g. ImGui). A nonzero
+        /// return means the message was handled.</summary>
+        public Func<IntPtr, uint, IntPtr, IntPtr, IntPtr> MessageHook;
+
         /// <summary>Raised when the client area size changes (not while minimized).</summary>
         public event Action<int, int> Resized;
         /// <summary>Raised on WM_KEYDOWN/WM_SYSKEYDOWN with the virtual-key code.</summary>
@@ -134,6 +138,13 @@ namespace Bonsai.Graphics.Win32
             Win32Window window = instance;
             if (window != null && hWnd == window.Handle)
             {
+                var hook = window.MessageHook;
+                if (hook != null)
+                {
+                    IntPtr handled = hook(hWnd, msg, wParam, lParam);
+                    if (handled != IntPtr.Zero)
+                        return handled;
+                }
                 switch (msg)
                 {
                     case Win32Native.WM_SIZE:
