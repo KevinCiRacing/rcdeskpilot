@@ -19,4 +19,10 @@
     <!-- PNG/JPG/BMP decoding for Texture2D -->
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Renderer-independent engine sources shared with the legacy project -->
+    <Compile Include="..\Bonsai\Core\Utility.cs" Link="Legacy\Utility.cs" />
+    <Compile Include="..\Bonsai\Core\Exceptions.cs" Link="Legacy\Exceptions.cs" />
+    <Compile Include="..\Bonsai\Objects\Terrain\Heightmap.cs" Link="Legacy\Heightmap.cs" />
+  </ItemGroup>
 </Project>

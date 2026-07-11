@@ -56,6 +56,17 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // World rendering demo/selftest (issue 08)
+            if (Array.IndexOf(args, "--scenery") >= 0 || Array.IndexOf(args, "--scenerytest") >= 0 ||
+                Array.IndexOf(args, "--photo") >= 0 || Array.IndexOf(args, "--phototest") >= 0)
+            {
+                bool photoMode = Array.IndexOf(args, "--photo") >= 0 || Array.IndexOf(args, "--phototest") >= 0;
+                bool testMode = Array.IndexOf(args, "--scenerytest") >= 0 || Array.IndexOf(args, "--phototest") >= 0;
+                string outputDir = args.Length > 1 && !args[args.Length - 1].StartsWith("--")
+                    ? args[args.Length - 1] : Environment.CurrentDirectory;
+                return SceneryDemo.Run(FindRepoRoot(), photoMode, testMode, outputDir);
+            }
+
             // Scene-graph demo/selftest (issue 07)
             int sceneArg = Array.IndexOf(args, "--scene");
             int sceneTestArg = Array.IndexOf(args, "--scenetest");

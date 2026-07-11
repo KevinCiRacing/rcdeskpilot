@@ -1,6 +1,6 @@
 # World rendering: terrain, sky, Photo Scenery, static objects
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 
