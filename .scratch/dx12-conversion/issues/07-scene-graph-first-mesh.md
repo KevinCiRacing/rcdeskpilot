@@ -1,6 +1,6 @@
 # Scene Graph + first mesh: Assimp-loaded aircraft on screen
 
-Status: claimed
+Status: resolved
 
 ## What to build
 
@@ -18,3 +18,7 @@ Game objects own and update nodes; only the renderer walks the graph and records
 ## Blocked by
 
 - 06
+
+## Comments
+
+Resolved in commit 198f861. All four acceptance criteria verified by the TestHost scenetest (screenshots reviewed: textured, lit Extra 300 with correct part placement; control-surface deflection visible between captures). Notes: stock content ships only uncompressed DDS, so the BC path is validated with a synthetic DXT1 texture; meshes use upload-heap buffers for now (default-heap + staging is a perf refinement for later); mip chains not yet uploaded (level 0 only) - revisit with the world renderer (issue 08) where minification matters.
