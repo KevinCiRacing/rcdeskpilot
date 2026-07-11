@@ -4,7 +4,7 @@ using System.Text;
 using RCSim.DataClasses;
 using System.Diagnostics;
 using Bonsai.Core;
-using Microsoft.DirectX;
+using System.Numerics;
 using Bonsai.Objects.Terrain;
 using RCSim.Interfaces;
 using System.Threading;
@@ -272,7 +272,7 @@ namespace RCSim
                 foreach (Vector3 collisionPoint in AircraftParameters.CollisionPoints)
                 {
                     // Check for collisions
-                    collisionList.Add(ToDirectX(position + Vector3.TransformCoordinate(collisionPoint, Matrix.RotationQuaternion(OrientationQuat))));
+                    collisionList.Add(ToDirectX(position + Vector3.Transform(collisionPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat))));
                 }
                 return collisionList;
             }
@@ -290,7 +290,7 @@ namespace RCSim
                 foreach (Vector3 gearPoint in AircraftParameters.GearPoints)
                 {
                     // Check for collisions
-                    gearList.Add(ToDirectX(position + Vector3.TransformCoordinate(gearPoint, Matrix.RotationQuaternion(OrientationQuat))));
+                    gearList.Add(ToDirectX(position + Vector3.Transform(gearPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat))));
                 }
                 return gearList;
             }
@@ -422,7 +422,7 @@ namespace RCSim
             rhoSurface = _AirDensity * AircraftParameters.WingArea / 2;
             rhoVerticalSurface = _AirDensity * AircraftParameters.VerticalArea / 2;
             gravityMass = _Gravity * AircraftParameters.Mass;
-            OrientationQuat = Quaternion.RotationYawPitchRoll(0.0f, 0.0f, 0.0f);
+            OrientationQuat = Quaternion.CreateFromYawPitchRoll(0.0f, 0.0f, 0.0f);
             GearExtended = true;
             FlapsExtended = false;
             StartModel();
@@ -433,8 +433,8 @@ namespace RCSim
             X = 0.0f;
             Y = 0.0f;
             Z = 0.0f;
-            OrientationQuat = Quaternion.RotationYawPitchRoll(0f, 0f, (float)Math.PI / 2f);
-            //OrientationQuat = Quaternion.RotationYawPitchRoll(0f, 0f, 0f);
+            OrientationQuat = Quaternion.CreateFromYawPitchRoll(0f, 0f, (float)Math.PI / 2f);
+            //OrientationQuat = Quaternion.CreateFromYawPitchRoll(0f, 0f, 0f);
             Vx = 0;
             Vy = 0;
             Vz = 0;
@@ -486,7 +486,7 @@ namespace RCSim
             Y = y;
             Z = z;
             double dir = Math.PI - (Math.PI / 2f + Program.Instance.Weather.Wind.CurrentDirection);
-            OrientationQuat = Quaternion.RotationYawPitchRoll(0f, 0f, (float)(dir));
+            OrientationQuat = Quaternion.CreateFromYawPitchRoll(0f, 0f, (float)(dir));
             Vx = 15;
             Velocity = new Vector3((float)Math.Cos(dir) * 10f, (float)Math.Sin(dir) * 10f, -2);
         }
@@ -523,7 +523,7 @@ namespace RCSim
                 UpdateAirspeed();
 
                 // Convert the wind vector to plane coordinates
-                Vector3 wind = Vector3.TransformCoordinate(ToModel(-Wind), Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+                Vector3 wind = Vector3.Transform(ToModel(-Wind), Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
 
                 if (Math.Abs(Vx + wind.X) < 0.001)
                 {
@@ -552,15 +552,15 @@ namespace RCSim
 
                 float velX0 = Velocity.X; float velY0 = Velocity.Y; float velZ0 = Velocity.Z;
                 Vector3 dVelocity = new Vector3(Ax * elapsedSeconds, Ay * elapsedSeconds, Az * elapsedSeconds);
-                dVelocity.TransformCoordinate(Matrix.RotationQuaternion(OrientationQuat));
-                //Vector3 dVelocity = new Vector3(Ax * elapsedSeconds, Ay * elapsedSeconds, Az * elapsedSeconds).TransformCoordinate(Matrix.RotationQuaternion(OrientationQuat));
+                dVelocity = Vector3.Transform(dVelocity, Matrix4x4.CreateFromQuaternion(OrientationQuat));
+                //Vector3 dVelocity = new Vector3(Ax * elapsedSeconds, Ay * elapsedSeconds, Az * elapsedSeconds).TransformCoordinate(Matrix4x4.CreateFromQuaternion(OrientationQuat));
                 Velocity += dVelocity;
 
                 // collision response
                 //UpdateCollisions2(elapsedSeconds);
 
                 Vector3 planeVelocity = new Vector3(Velocity.X, Velocity.Y, Velocity.Z);
-                planeVelocity.TransformCoordinate(Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+                planeVelocity = Vector3.Transform(planeVelocity, Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
                 Vx = planeVelocity.X;
                 Vy = planeVelocity.Y;
                 Vz = planeVelocity.Z;
@@ -605,7 +605,7 @@ namespace RCSim
                 }
                  */
 
-                if ((planeVelocity.LengthSq() > 40000) || (Wx > 100) || (Wy > 100) || (Wz > 100))
+                if ((planeVelocity.LengthSquared() > 40000) || (Wx > 100) || (Wy > 100) || (Wz > 100))
                 {
                     // Flight model out of control
                     Reset();
@@ -636,7 +636,7 @@ namespace RCSim
                         OrientationQuat.W - (OrientationQuat.X * Wx + OrientationQuat.Y * Wy + OrientationQuat.Z * Wz) * 0.5f * elapsedSeconds
                         );
                 //OrientationQuat += OrientationQuat * (new Vector3(Wx, Wy, Wz)) * 0.5f * elapsedSeconds;
-                newOrientation.Normalize();
+                newOrientation = Quaternion.Normalize(newOrientation);
                 OrientationQuat = newOrientation;
                 Vector3 ypr = Utility.EulerAnglesFromQuaternion(OrientationQuat);
                 Roll = ypr.X;
@@ -1000,32 +1000,32 @@ namespace RCSim
 
         private Vector3 ToWorldCoords(Vector3 vector)
         {
-            return Vector3.TransformCoordinate(vector, Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+            return Vector3.Transform(vector, Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
         }
 
         private Vector3 ToPlaneCoords(Vector3 vector)
         {
-            return Vector3.TransformCoordinate(vector, Matrix.RotationQuaternion(OrientationQuat));
+            return Vector3.Transform(vector, Matrix4x4.CreateFromQuaternion(OrientationQuat));
         }
 
-        private Matrix InertiaInvertInWorldCoords()
+        private Matrix4x4 InertiaInvertInWorldCoords()
         {
-            Matrix m = new Matrix();
+            Matrix4x4 m = new Matrix4x4();
             m.M11 = (float)AircraftParameters.Ixx;
             m.M22 = (float)AircraftParameters.Iyy;
             m.M33 = (float)AircraftParameters.Izz;
             m.M44 = 1;
-            m.Invert();
+            Matrix4x4.Invert(m, out m);
             
-            Matrix r = Matrix.RotationQuaternion(OrientationQuat);
-            Matrix rt = Matrix.TransposeMatrix(r);
-            Matrix result = r * m * rt;
+            Matrix4x4 r = Matrix4x4.CreateFromQuaternion(OrientationQuat);
+            Matrix4x4 rt = Matrix4x4.Transpose(r);
+            Matrix4x4 result = r * m * rt;
             return result;
         }
 
         private Vector3 MultiplyInertiaInverse2(Vector3 vector)
         {
-            Matrix m = InertiaInvertInWorldCoords();
+            Matrix4x4 m = InertiaInvertInWorldCoords();
 
             return new Vector3(
                 vector.X * m.M11 + vector.Y * m.M21 + vector.Z * m.M31,
@@ -1042,7 +1042,7 @@ namespace RCSim
                 return; // no tension on the cable
             if (tension > 0.05f)
                 tension = 0.05f;
-            distVector.Normalize();
+            distVector = Vector3.Normalize(distVector);
             float convergence = Vector3.Dot(distVector, Velocity);
             if (convergence < 0)
             {
@@ -1078,14 +1078,14 @@ namespace RCSim
                 foreach (Vector3 gearPoint in AircraftParameters.GearPoints)
                 {
                     // Check for collisions
-                    Vector3 gearPointW = positionW + Vector3.TransformCoordinate(gearPoint, Matrix.RotationQuaternion(OrientationQuat));
+                    Vector3 gearPointW = positionW + Vector3.Transform(gearPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                     Vector3 normalW;
                     float depth = 0f;
                     if (IsColliding(gearPointW, out normalW, out depth))
                     {
-                        Vector3 normal = Vector3.TransformCoordinate(ToModel(normalW), Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+                        Vector3 normal = Vector3.Transform(ToModel(normalW), Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
                         CollisionPoint point = new CollisionPoint();
-                        point.ContactPoint = Vector3.TransformCoordinate(gearPoint, Matrix.RotationQuaternion(OrientationQuat));
+                        point.ContactPoint = Vector3.Transform(gearPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                         point.Normal = normal;
                         point.NormalW = ToModel(normalW);
                         point.Depth = depth;
@@ -1097,14 +1097,14 @@ namespace RCSim
             foreach (Vector3 collisionPoint in AircraftParameters.CollisionPoints)
             {
                 // Check for collisions
-                Vector3 collisionPointW = positionW + Vector3.TransformCoordinate(collisionPoint, Matrix.RotationQuaternion(OrientationQuat));
+                Vector3 collisionPointW = positionW + Vector3.Transform(collisionPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                 Vector3 normalW;
                 float depth = 0f;
                 if (IsColliding(collisionPointW, out normalW, out depth))
                 {
-                    Vector3 normal = Vector3.TransformCoordinate(ToModel(normalW), Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+                    Vector3 normal = Vector3.Transform(ToModel(normalW), Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
                     CollisionPoint point = new CollisionPoint();
-                    point.ContactPoint = Vector3.TransformCoordinate(collisionPoint, Matrix.RotationQuaternion(OrientationQuat));
+                    point.ContactPoint = Vector3.Transform(collisionPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                     point.Normal = normal;
                     point.NormalW = ToModel(normalW);
                     point.Depth = depth;
@@ -1134,9 +1134,9 @@ namespace RCSim
                     contactPoint = PointToSegment(new Vector3(), contactList[0].ContactPoint, contactList[1].ContactPoint, out b);
                     //contactPoint = (0.5f * (contactList[0].ContactPoint + contactList[1].ContactPoint));
                     normal = (b * contactList[0].Normal + (1 - b) * contactList[1].Normal);
-                    normal.Normalize();
+                    normal = Vector3.Normalize(normal);
                     normalW = (b * contactList[0].NormalW + (1 - b) * contactList[1].NormalW);
-                    normalW.Normalize();
+                    normalW = Vector3.Normalize(normalW);
                     depth = (b * contactList[0].Depth + (1 - b) * contactList[1].Depth);
                 }
                 else
@@ -1155,16 +1155,16 @@ namespace RCSim
                     }
                    
                     normal *= (1f / contactList.Count);
-                    normal.Normalize();
+                    normal = Vector3.Normalize(normal);
                     normalW *= (1f / contactList.Count);
-                    normalW.Normalize();
+                    normalW = Vector3.Normalize(normalW);
                     depth *= (1f / contactList.Count);
 
-                    Plane plane = Plane.FromPoints(contactList[0].ContactPoint, contactList[1].ContactPoint, contactList[2].ContactPoint);
+                    Plane plane = Plane.CreateFromVertices(contactList[0].ContactPoint, contactList[1].ContactPoint, contactList[2].ContactPoint);
                     //Vector3 planeNormal = Vector3.Cross(contactList[1].ContactPoint - contactList[0].ContactPoint,
                     //    contactList[2].ContactPoint - contactList[0].ContactPoint);
-                    //planeNormal.Normalize();
-                    plane.Normalize();
+                    //planeNormal = Vector3.Normalize(planeNormal);
+                    plane = Plane.Normalize(plane);
                     float distance = plane.D;
                     contactPoint = -distance * normalW;
                     //contactPoint = -contactList[0].ContactPoint.Z * normal;//-depth * normal;
@@ -1187,7 +1187,7 @@ namespace RCSim
                 if (Vector3.Dot(normalW, contactVel) < 0)
                 {
                     Vector3 colTangent = Vector3.Cross(Vector3.Cross(normalW, contactVel), normalW);
-                    colTangent.Normalize();
+                    colTangent = Vector3.Normalize(colTangent);
                     //this.DebugPosition = ToDirectX(positionW + contactPoint);
                     //this.Debug1 = ToDirectX(positionW + colTangent);
                     float vrt = Vector3.Dot(contactVel, colTangent);
@@ -1204,7 +1204,7 @@ namespace RCSim
                         Velocity += (jcg / (float)AircraftParameters.Mass) * normalW;
                         rotationVelDiffW = MultiplyInertiaInverse2(Vector3.Cross(contactPoint, jpoint * normalW));
                     }
-                    if (Velocity.LengthSq() < 2f)
+                    if (Velocity.LengthSquared() < 2f)
                     {
                         if (elapsedTime < 0.2f)
                         {
@@ -1242,7 +1242,7 @@ namespace RCSim
             //Framework.Instance.DebugString += "\nvel: " + Velocity;
             Vector3 planeVelocity = new Vector3(Velocity.X, Velocity.Y, Velocity.Z);
             Vector3 rotationalVelocity = new Vector3(Wx, Wy, Wz);
-            planeVelocity.TransformCoordinate(Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+            planeVelocity = Vector3.Transform(planeVelocity, Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
             //Vx = planeVelocity.X;
             //Vy = planeVelocity.Y;
             //Vz = planeVelocity.Z;                        
@@ -1252,12 +1252,12 @@ namespace RCSim
             foreach (Vector3 gearPoint in AircraftParameters.GearPoints)
             {
                 // Check for collisions
-                Vector3 gearPointW = position + Vector3.TransformCoordinate(gearPoint, Matrix.RotationQuaternion(OrientationQuat));
+                Vector3 gearPointW = position + Vector3.Transform(gearPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                 Vector3 normalW;
                 float depth = 0f;
                 if (IsColliding(gearPointW, out normalW, out depth))
                 {
-                    Vector3 normal = Vector3.TransformCoordinate(ToModel(normalW), Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+                    Vector3 normal = Vector3.Transform(ToModel(normalW), Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
                     CollisionPoint point = new CollisionPoint();
                     point.ContactPoint = gearPoint;
                     point.Normal = normal;
@@ -1287,9 +1287,9 @@ namespace RCSim
                     contactPoint = PointToSegment(new Vector3(), contactList[0].ContactPoint, contactList[1].ContactPoint, out b);
                     //contactPoint = (0.5f * (contactList[0].ContactPoint + contactList[1].ContactPoint));
                     normal = (b * contactList[0].Normal + (1 - b) * contactList[1].Normal);
-                    normal.Normalize();
+                    normal = Vector3.Normalize(normal);
                     normalW = (b * contactList[0].NormalW + (1 - b) * contactList[1].NormalW);
-                    normalW.Normalize();
+                    normalW = Vector3.Normalize(normalW);
                     depth = (b * contactList[0].Depth + (1 - b) * contactList[1].Depth);
                 }
                 else
@@ -1305,9 +1305,9 @@ namespace RCSim
                         depth += collisionPoint.Depth;
                     }
                     normal *= (1f / contactList.Count);
-                    normal.Normalize();
+                    normal = Vector3.Normalize(normal);
                     normalW *= (1f / contactList.Count);
-                    normalW.Normalize();
+                    normalW = Vector3.Normalize(normalW);
                     depth *= (1f / contactList.Count);
                     contactPoint = -contactList[0].ContactPoint.Z * normal;//-depth * normal;
                 }
@@ -1346,26 +1346,26 @@ namespace RCSim
 
                     //Velocity += (-Velocity * 1.0f* elapsedTime);
                     Vector3 rotationVelDiff = MultiplyInertiaInverse(Vector3.Cross(contactPoint, j * normal));
-#if DEBUG
+#if DEBUG && !CHARACTERIZATION
                     if (sinceLastTouchdown < 0.5f)
                     {
                         Framework.Instance.DebugString += string.Format("touchdown with {0} points!", contactList.Count);
                     }
 #endif
-                    if (Velocity.LengthSq() < 5.0f)
+                    if (Velocity.LengthSquared() < 5.0f)
                     {
                         if (Math.Sign(Wx) != Math.Sign(rotationVelDiff.X))
                             Wx += rotationVelDiff.X;
                         else
-                            Wx += rotationVelDiff.X / (3 * (6.0f - Velocity.LengthSq()));
+                            Wx += rotationVelDiff.X / (3 * (6.0f - Velocity.LengthSquared()));
                         if (Math.Sign(Wy) != Math.Sign(rotationVelDiff.Y))
                             Wy += rotationVelDiff.Y;
                         else
-                            Wy += rotationVelDiff.Y / (3 * (6.0f - Velocity.LengthSq()));
+                            Wy += rotationVelDiff.Y / (3 * (6.0f - Velocity.LengthSquared()));
                         if (Math.Sign(Wz) != Math.Sign(rotationVelDiff.Z))
                             Wz += rotationVelDiff.Z;
                         else
-                            Wz += rotationVelDiff.Z / (3 * (6.0f - Velocity.LengthSq()));
+                            Wz += rotationVelDiff.Z / (3 * (6.0f - Velocity.LengthSquared()));
                     }
                     else
                     {
@@ -1374,7 +1374,7 @@ namespace RCSim
                         Wz += rotationVelDiff.Z;
                     }
                     /*
-                    if (Velocity.LengthSq() < 5.0f)
+                    if (Velocity.LengthSquared() < 5.0f)
                     {
                         if (Math.Sign(Roll) == Math.Sign(rotationVelDiff.X))
                             Wx = 0;
@@ -1425,7 +1425,7 @@ namespace RCSim
             foreach (Vector3 collisionPoint in AircraftParameters.CollisionPoints)
             {
                 // Check for collisions
-                Vector3 collisionPointW = positionW + Vector3.TransformCoordinate(collisionPoint, Matrix.RotationQuaternion(OrientationQuat));
+                Vector3 collisionPointW = positionW + Vector3.Transform(collisionPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                 if (collisionPointW.Z > 0)
                     OnWater = true;
             }
@@ -1435,7 +1435,7 @@ namespace RCSim
                 foreach (Vector3 gearPoint in AircraftParameters.GearPoints)
                 {
                     // Check for collisions
-                    Vector3 gearPointW = positionW + Vector3.TransformCoordinate(gearPoint, Matrix.RotationQuaternion(OrientationQuat));
+                    Vector3 gearPointW = positionW + Vector3.Transform(gearPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                     if (gearPointW.Z > 0)
                         OnWater = true;
                 }
@@ -1447,14 +1447,14 @@ namespace RCSim
                 foreach (Vector3 floatPoint in AircraftParameters.FloatPoints)
                 {
                     // Check for collisions
-                    Vector3 floatPointW = positionW + Vector3.TransformCoordinate(floatPoint, Matrix.RotationQuaternion(OrientationQuat));
+                    Vector3 floatPointW = positionW + Vector3.Transform(floatPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                     Vector3 normalW;
                     float waterDepth = (float)(0.005f * (Math.Sin(3 * totalSeconds + 2 * floatPointW.X) + Math.Cos(3 * totalSeconds + 2 * floatPointW.Y)));
                     if (floatPointW.Z > waterDepth)
                     {
-                        Vector3 normal = Vector3.TransformCoordinate(ToModel(new Vector3(0, 1, 0)), Matrix.RotationQuaternion(Quaternion.Invert(OrientationQuat)));
+                        Vector3 normal = Vector3.Transform(ToModel(new Vector3(0, 1, 0)), Matrix4x4.CreateFromQuaternion(Quaternion.Inverse(OrientationQuat)));
                         CollisionPoint point = new CollisionPoint();
-                        point.ContactPoint = Vector3.TransformCoordinate(floatPoint, Matrix.RotationQuaternion(OrientationQuat));
+                        point.ContactPoint = Vector3.Transform(floatPoint, Matrix4x4.CreateFromQuaternion(OrientationQuat));
                         point.Normal = normal;
                         point.NormalW = ToModel(new Vector3(0, 1, 0));
                         point.Depth = floatPointW.Z - waterDepth;
@@ -1484,9 +1484,9 @@ namespace RCSim
                     contactPoint = PointToSegment(new Vector3(), contactList[0].ContactPoint, contactList[1].ContactPoint, out b);
                     //contactPoint = (0.5f * (contactList[0].ContactPoint + contactList[1].ContactPoint));
                     normal = (b * contactList[0].Normal + (1 - b) * contactList[1].Normal);
-                    normal.Normalize();
+                    normal = Vector3.Normalize(normal);
                     normalW = (b * contactList[0].NormalW + (1 - b) * contactList[1].NormalW);
-                    normalW.Normalize();
+                    normalW = Vector3.Normalize(normalW);
                     depth = (b * contactList[0].Depth + (1 - b) * contactList[1].Depth);
                 }
                 else
@@ -1505,16 +1505,16 @@ namespace RCSim
                     }
 
                     normal *= (1f / contactList.Count);
-                    normal.Normalize();
+                    normal = Vector3.Normalize(normal);
                     normalW *= (1f / contactList.Count);
-                    normalW.Normalize();
+                    normalW = Vector3.Normalize(normalW);
                     depth *= (1f / contactList.Count);
 
-                    Plane plane = Plane.FromPoints(contactList[0].ContactPoint, contactList[1].ContactPoint, contactList[2].ContactPoint);
+                    Plane plane = Plane.CreateFromVertices(contactList[0].ContactPoint, contactList[1].ContactPoint, contactList[2].ContactPoint);
                     //Vector3 planeNormal = Vector3.Cross(contactList[1].ContactPoint - contactList[0].ContactPoint,
                     //    contactList[2].ContactPoint - contactList[0].ContactPoint);
-                    //planeNormal.Normalize();
-                    plane.Normalize();
+                    //planeNormal = Vector3.Normalize(planeNormal);
+                    plane = Plane.Normalize(plane);
                     float distance = plane.D;
                     contactPoint = -distance * normalW;
                     //contactPoint = -contactList[0].ContactPoint.Z * normal;//-depth * normal;
@@ -1537,7 +1537,7 @@ namespace RCSim
                 //if (Vector3.Dot(normalW, contactVel) < 0)
                 {
                     Vector3 colTangent = Vector3.Cross(Vector3.Cross(normalW, contactVel), normalW);
-                    colTangent.Normalize();
+                    colTangent = Vector3.Normalize(colTangent);
                     //this.DebugPosition = ToDirectX(positionW + contactPoint);
                     //this.Debug1 = ToDirectX(positionW + colTangent);
                     float vrt = Vector3.Dot(contactVel, colTangent);
@@ -1556,7 +1556,7 @@ namespace RCSim
                     }
                     rotVelW += rotationVelDiffW;
                     /*
-                    if (Velocity.LengthSq() < 2f)
+                    if (Velocity.LengthSquared() < 2f)
                     {
                         if (elapsedTime < 0.2f)
                         {

@@ -1,19 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Bonsai.Core.EventArgs;
 
 namespace Bonsai.Core
 {
-    /// <summary>Stores timer callback information</summary>
-    public struct TimerData
-    {
-        public TimerCallback callback;
-        public float TimeoutInSecs;
-        public float Countdown;
-        public bool IsEnabled;
-    }
-
     public class FrameworkTimer
     {
         #region Instance Data

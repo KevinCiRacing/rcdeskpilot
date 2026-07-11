@@ -4,7 +4,7 @@ using System.Text;
 using System.Xml;
 
 using Bonsai.Core;
-using Microsoft.DirectX;
+using System.Numerics;
 using System.Xml.XPath;
 using System.Globalization;
 using System.IO;

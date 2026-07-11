@@ -1,6 +1,6 @@
 # Physics on .NET 8: System.Numerics migration, characterization green
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 
