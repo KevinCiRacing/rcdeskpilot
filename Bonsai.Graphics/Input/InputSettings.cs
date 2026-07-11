@@ -80,9 +80,20 @@ namespace Bonsai.Graphics.Input
                 SetAxis(function, axis, inverted);
         }
 
+        /// <summary>Writes the file, preserving tables other writers (e.g.
+        /// GameSettings' Application.KeyValues) may have updated.</summary>
         private void Save()
         {
-            dataSet.WriteXml(path);
+            var merged = new DataSet("FrameWorkSettings");
+            if (File.Exists(path))
+            {
+                try { merged.ReadXml(path); }
+                catch { /* corrupt file: rewrite from scratch */ }
+            }
+            if (merged.Tables.Contains("Input.Joystick"))
+                merged.Tables.Remove("Input.Joystick");
+            merged.Tables.Add(dataSet.Tables["Input.Joystick"].Copy());
+            merged.WriteXml(path);
         }
     }
 }

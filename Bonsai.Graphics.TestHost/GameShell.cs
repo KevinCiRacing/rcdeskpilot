@@ -27,7 +27,11 @@ namespace Bonsai.Graphics.TestHost
     /// </summary>
     internal static unsafe class GameShell
     {
-        private enum Screen { MainMenu, AircraftPicker, SceneryPicker, Flying }
+        private enum Screen { MainMenu, AircraftPicker, SceneryPicker, Settings, Flying }
+
+        // Controls tab: axis-assignment listen mode.
+        private static string listeningFunction;
+        private static int[] listenBaseline;
 
         public static int Run(string repoRoot, bool test, string outDir)
         {
@@ -56,6 +60,10 @@ namespace Bonsai.Graphics.TestHost
         private static int RunShell(string repoRoot, bool test, string outDir, string aircraftRoot, string dataDir,
             Win32Window window, GraphicsDevice device, SceneRenderer renderer, ImGuiRenderer imgui, InputManager input)
         {
+            // --- Persistent settings (legacy frameworkconfig.xml keys) ---
+            var settings = new GameSettings(Path.Combine(outDir, "frameworkconfig.xml"));
+            AudioEngine.Volume = settings.GetInt("Volume", 100);
+
             // --- Menu backdrop: grass + sky ---
             var backdrop = new SceneNode("backdrop");
             backdrop.AddChild(new SceneNode("ground")
@@ -111,6 +119,7 @@ namespace Bonsai.Graphics.TestHost
 
             // Test assertions
             bool sawFlying = false, sawAirborne = false, windReachedModel = false, backToMenu = false;
+            bool sawSettings = false;
             byte[] shotMenu = null, shotFlight = null;
 
             window.KeyDown += key =>
@@ -130,6 +139,7 @@ namespace Bonsai.Graphics.TestHost
             {
                 session = new FlightSession(device, renderer, repoRoot,
                     pickedAircraft ?? Path.Combine(aircraftRoot, "extra", "Xtra.par"), pickedScenery);
+                ApplyWeatherSettings(settings, session.Wind);
                 screen = Screen.Flying;
             }
 
@@ -149,6 +159,9 @@ namespace Bonsai.Graphics.TestHost
                 // --- Gametest script ---
                 if (test)
                 {
+                    if (frame == 6) screen = Screen.Settings;
+                    if (frame == 10 && screen == Screen.Settings) { sawSettings = true; settings.SetInt("Volume", 77); }
+                    if (frame == 14) screen = Screen.MainMenu;
                     if (frame == 20) { pickedAircraft = Path.Combine(aircraftRoot, "extra", "Xtra.par"); pickedScenery = "default"; StartFlight(); }
                     if (screen == Screen.Flying && session != null)
                     {
@@ -213,7 +226,11 @@ namespace Bonsai.Graphics.TestHost
                 if (screen == Screen.Flying && session != null)
                 {
                     FlightDemo.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
-                    DrawWeatherPanel(session.Wind, device);
+                    DrawWeatherPanel(session.Wind, device, settings);
+                }
+                else if (screen == Screen.Settings)
+                {
+                    DrawSettings(ref screen, settings, input, window, device);
                 }
                 else
                 {
@@ -225,10 +242,10 @@ namespace Bonsai.Graphics.TestHost
                 imgui.Render(commandList);
                 device.EndFrame();
 
-                if (test && frame == 10)
+                if (test && frame == 4)
                     shotMenu = CaptureMenu(device, renderer, imgui, menuCamera, backdrop, ref screen, ref quit, ref pickedAircraft, ref pickedScenery, aircraft, sceneries);
                 if (test && frame == 400 && session != null)
-                    shotFlight = CaptureFlight(device, renderer, imgui, flightCamera, session);
+                    shotFlight = CaptureFlight(device, renderer, imgui, flightCamera, session, settings);
                 frame++;
             }
 
@@ -241,12 +258,17 @@ namespace Bonsai.Graphics.TestHost
             SavePng(shotMenu, device, Path.Combine(outDir, "game_menu.png"));
             SavePng(shotFlight, device, Path.Combine(outDir, "game_flight.png"));
 
+            // Settings persistence: a fresh load of the file must see the value.
+            bool settingsPersisted = new GameSettings(Path.Combine(outDir, "frameworkconfig.xml")).GetInt("Volume", 0) == 77;
+
             Console.WriteLine("menu -> flight  : {0}", sawFlying ? "OK" : "FAILED");
+            Console.WriteLine("settings screen : {0}", sawSettings ? "OK" : "FAILED");
+            Console.WriteLine("settings persist: {0}", settingsPersisted ? "OK" : "FAILED");
             Console.WriteLine("airborne        : {0}", sawAirborne ? "OK" : "FAILED");
             Console.WriteLine("wind -> model   : {0}", windReachedModel ? "OK" : "FAILED");
             Console.WriteLine("flight -> menu  : {0}", backToMenu ? "OK" : "FAILED");
             Console.WriteLine("debug errors    : {0}", debugErrors);
-            bool pass = sawFlying && sawAirborne && windReachedModel && backToMenu && debugErrors == 0;
+            bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && backToMenu && debugErrors == 0;
             Console.WriteLine(pass ? "GAMETEST PASS" : "GAMETEST FAIL");
             return pass ? 0 : 1;
         }
@@ -263,6 +285,7 @@ namespace Bonsai.Graphics.TestHost
                     ImGui.TextWrapped("Welcome back to the field.");
                     ImGui.Spacing();
                     if (ImGui.Button("Fly!", new Vector2(240, 48))) screen = Screen.AircraftPicker;
+                    if (ImGui.Button("Settings", new Vector2(240, 36))) screen = Screen.Settings;
                     if (ImGui.Button("Quit", new Vector2(240, 36))) quit = true;
                     ImGui.End();
                     break;
@@ -308,31 +331,213 @@ namespace Bonsai.Graphics.TestHost
             }
         }
 
-        private static void DrawWeatherPanel(RCSim.Wind wind, GraphicsDevice device)
+        /// <summary>Applies the persisted weather (legacy 0-100 slider keys)
+        /// to the Wind model at flight start.</summary>
+        private static void ApplyWeatherSettings(GameSettings settings, RCSim.Wind wind)
+        {
+            wind.ConstantWindSpeed = settings.GetInt("WindSpeed", 0) * wind.MaximumConstantWindSpeed / 100.0;
+            wind.Direction = (100 - settings.GetInt("WindDirection", 0)) * 2 * Math.PI / 100.0;
+            wind.GustSpeed = settings.GetInt("GustStrength", 0) * wind.MaximumGustSpeed / 100.0;
+            wind.GustFrequency = settings.GetInt("GustFrequency", 0) / 100.0;
+            wind.GustVariability = settings.GetInt("GustVariability", 0) / 100.0;
+            wind.Turbulence = settings.GetInt("Turbulence", 0) / 100.0;
+            wind.DownDrafts = settings.GetInt("DownDrafts", 0) / 100.0;
+            wind.ThermalStrengthFactor = settings.GetInt("ThermalStrength", 50) / 50.0f;
+            wind.ThermalSizeFactor = settings.GetInt("ThermalSize", 50) / 50.0f;
+        }
+
+        private static void DrawWeatherPanel(RCSim.Wind wind, GraphicsDevice device, GameSettings settings)
         {
             ImGui.SetNextWindowPos(new Vector2(device.Width - 296, 16), ImGuiCond.Once);
-            ImGui.SetNextWindowSize(new Vector2(280, 220), ImGuiCond.Once);
+            ImGui.SetNextWindowSize(new Vector2(280, 240), ImGuiCond.Once);
             ImGui.Begin("Weather");
+
+            // Sliders apply live; the legacy 0-100 keys persist on release.
+            void Persist(string key, double normalized)
+            {
+                if (ImGui.IsItemDeactivatedAfterEdit())
+                    settings.SetInt(key, (int)Math.Round(normalized * 100));
+            }
+
             float windSpeed = (float)wind.ConstantWindSpeed;
             if (ImGui.SliderFloat("Wind m/s", ref windSpeed, 0f, (float)wind.MaximumConstantWindSpeed))
                 wind.ConstantWindSpeed = windSpeed;
+            Persist("WindSpeed", wind.ConstantWindSpeed / wind.MaximumConstantWindSpeed);
+
             float direction = (float)(wind.Direction * 180.0 / Math.PI);
             if (ImGui.SliderFloat("Direction", ref direction, 0f, 360f, "%.0f deg"))
                 wind.Direction = direction * Math.PI / 180.0;
+            Persist("WindDirection", 1.0 - wind.Direction / (2 * Math.PI));
+
             float gusts = (float)wind.GustSpeed;
             if (ImGui.SliderFloat("Gusts m/s", ref gusts, 0f, (float)wind.MaximumGustSpeed))
                 wind.GustSpeed = gusts;
+            Persist("GustStrength", wind.GustSpeed / wind.MaximumGustSpeed);
+
             float variability = (float)wind.GustVariability;
             if (ImGui.SliderFloat("Variability", ref variability, 0f, 1f))
                 wind.GustVariability = variability;
+            Persist("GustVariability", wind.GustVariability);
+
             float turbulence = (float)wind.Turbulence;
             if (ImGui.SliderFloat("Turbulence", ref turbulence, 0f, 1f))
                 wind.Turbulence = turbulence;
+            Persist("Turbulence", wind.Turbulence);
+
+            float downdrafts = (float)wind.DownDrafts;
+            if (ImGui.SliderFloat("Downdrafts", ref downdrafts, 0f, 1f))
+                wind.DownDrafts = downdrafts;
+            Persist("DownDrafts", wind.DownDrafts);
+
             float thermals = wind.ThermalStrengthFactor;
             if (ImGui.SliderFloat("Thermals", ref thermals, 0f, 2f))
                 wind.ThermalStrengthFactor = thermals;
+            Persist("ThermalStrength", wind.ThermalStrengthFactor / 2.0); // key = factor * 50
+
             ImGui.Text(string.Format("current {0:F1} m/s", wind.CurrentWind.Length()));
             ImGui.End();
+        }
+
+        private static readonly string[] DetailLevels = { "Low", "Medium", "High" };
+        private static readonly (string label, string function)[] ControlFunctions =
+        {
+            ("Throttle", "throttle"), ("Elevator", "elevator"), ("Aileron", "aileron"), ("Rudder", "rudder"),
+        };
+
+        private static void DrawSettings(ref Screen screen, GameSettings settings, InputManager input,
+            Win32Window window, GraphicsDevice device)
+        {
+            ImGui.SetNextWindowPos(new Vector2(40, 40));
+            ImGui.SetNextWindowSize(new Vector2(560, 520));
+            ImGui.Begin("Settings", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse);
+            if (ImGui.BeginTabBar("tabs"))
+            {
+                if (ImGui.BeginTabItem("Simulation"))
+                {
+                    bool variometer = settings.GetBool("EnableVariometer", false);
+                    if (ImGui.Checkbox("Variometer sound", ref variometer)) settings.SetBool("EnableVariometer", variometer);
+                    bool compass = settings.GetBool("CompassVisible", false);
+                    if (ImGui.Checkbox("Show compass", ref compass)) settings.SetBool("CompassVisible", compass);
+                    ImGui.EndTabItem();
+                }
+                if (ImGui.BeginTabItem("Graphics"))
+                {
+                    bool fullscreen = window.IsFullscreen;
+                    if (ImGui.Checkbox("Fullscreen (F11)", ref fullscreen))
+                    {
+                        window.SetFullscreen(fullscreen);
+                        settings.SetBool("FullScreen", fullscreen);
+                    }
+                    DetailCombo(settings, "Scenery detail", "SceneryDetail");
+                    DetailCombo(settings, "Water detail", "WaterDetail");
+                    DetailCombo(settings, "Water ripples", "WaterRipplesDetail");
+                    DetailCombo(settings, "Reflections", "ReflectionDetail");
+                    DetailCombo(settings, "Smoke detail", "SmokeDetail");
+                    ImGui.EndTabItem();
+                }
+                if (ImGui.BeginTabItem("Sound"))
+                {
+                    int volume = settings.GetInt("Volume", 100);
+                    if (ImGui.SliderInt("Master volume", ref volume, 0, 100))
+                        AudioEngine.Volume = volume;
+                    if (ImGui.IsItemDeactivatedAfterEdit())
+                        settings.SetInt("Volume", volume);
+                    bool windSound = settings.GetBool("EnableWindSound", true);
+                    if (ImGui.Checkbox("Wind sound", ref windSound)) settings.SetBool("EnableWindSound", windSound);
+                    ImGui.EndTabItem();
+                }
+                if (ImGui.BeginTabItem("Controls"))
+                {
+                    DrawControlsTab(input);
+                    ImGui.EndTabItem();
+                }
+                ImGui.EndTabBar();
+            }
+            ImGui.Spacing();
+            if (ImGui.Button("Back", new Vector2(120, 32)))
+            {
+                listeningFunction = null;
+                listenBaseline = null;
+                screen = Screen.MainMenu;
+            }
+            ImGui.End();
+        }
+
+        private static void DetailCombo(GameSettings settings, string label, string key)
+        {
+            int value = Math.Clamp(settings.GetInt(key, 2), 0, DetailLevels.Length - 1);
+            if (ImGui.Combo(label, ref value, DetailLevels, DetailLevels.Length))
+                settings.SetInt(key, value);
+        }
+
+        private static void DrawControlsTab(InputManager input)
+        {
+            if (!input.JoystickAvailable)
+            {
+                ImGui.TextWrapped("No transmitter/joystick detected. Keyboard flight is active " +
+                    "(arrows/numpad; PageUp/PageDown throttle).");
+                return;
+            }
+            ImGui.Text(string.Format("Device: {0}", input.JoystickName));
+            ImGui.Spacing();
+
+            input.Update();
+            IReadOnlyList<KeyValuePair<string, int>> raw = input.GetRawAxes();
+
+            foreach (var (label, function) in ControlFunctions)
+            {
+                bool inverted;
+                JoystickAxis axis = input.Settings.GetAxis(function, out inverted);
+
+                ImGui.PushID(function);
+                int axisIndex = (int)axis;
+                string[] names = Enum.GetNames(typeof(JoystickAxis));
+                ImGui.SetNextItemWidth(120);
+                if (ImGui.Combo(label, ref axisIndex, names, names.Length))
+                    input.Settings.SetAxis(function, (JoystickAxis)axisIndex, inverted);
+                ImGui.SameLine();
+                if (ImGui.Checkbox("Inv", ref inverted))
+                    input.Settings.SetAxis(function, (JoystickAxis)axisIndex, inverted);
+                ImGui.SameLine();
+                bool listening = listeningFunction == function;
+                if (ImGui.Button(listening ? "Move stick..." : "Assign", new Vector2(100, 0)))
+                {
+                    listeningFunction = function;
+                    listenBaseline = null;
+                }
+                ImGui.SameLine();
+                float value = input.GetAxisValue(function) / 100f; // -1..1
+                ImGui.ProgressBar(value * 0.5f + 0.5f, new Vector2(120, 16), string.Format("{0:F0}", value * 100));
+                ImGui.PopID();
+            }
+
+            // Listen mode: assign the axis that moves the most from its baseline.
+            if (listeningFunction != null)
+            {
+                if (listenBaseline == null)
+                {
+                    listenBaseline = new int[raw.Count];
+                    for (int i = 0; i < raw.Count; i++) listenBaseline[i] = raw[i].Value;
+                }
+                else
+                {
+                    int bestAxis = -1, bestDelta = 0;
+                    for (int i = 0; i < raw.Count && i < listenBaseline.Length; i++)
+                    {
+                        int delta = Math.Abs(raw[i].Value - listenBaseline[i]);
+                        if (delta > bestDelta) { bestDelta = delta; bestAxis = i; }
+                    }
+                    if (bestAxis >= 0 && bestDelta > 50) // half deflection
+                    {
+                        bool wasInverted;
+                        input.Settings.GetAxis(listeningFunction, out wasInverted);
+                        input.Settings.SetAxis(listeningFunction, (JoystickAxis)bestAxis, wasInverted);
+                        listeningFunction = null;
+                        listenBaseline = null;
+                    }
+                }
+                ImGui.TextWrapped("Move the stick you want to assign; ESC cancels.");
+            }
         }
 
         private static byte[] CaptureMenu(GraphicsDevice device, SceneRenderer renderer, ImGuiRenderer imgui,
@@ -350,11 +555,11 @@ namespace Bonsai.Graphics.TestHost
         }
 
         private static byte[] CaptureFlight(GraphicsDevice device, SceneRenderer renderer, ImGuiRenderer imgui,
-            Camera camera, FlightSession session)
+            Camera camera, FlightSession session, GameSettings settings)
         {
             imgui.NewFrame();
             FlightDemo.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
-            DrawWeatherPanel(session.Wind, device);
+            DrawWeatherPanel(session.Wind, device, settings);
             return FrameCapture.RenderAndReadback(device, list =>
             {
                 renderer.Render(list, camera, session.World);
