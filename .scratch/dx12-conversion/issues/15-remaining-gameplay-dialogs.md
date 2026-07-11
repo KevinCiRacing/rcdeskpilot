@@ -1,6 +1,6 @@
 # Remaining gameplay + dialogs
 
-Status: ready-for-agent
+Status: resolved
 
 ## What to build
 
@@ -28,9 +28,15 @@ Landed on `dx12` as four demoable increments, all verified by the `--gametest` s
 3. b455c01 + c15d9e6 — Gameplay: windsock (FlagCloth flag.x), variometer (legacy pitch/volume law), smoke trail (SmokeDetail-scaled, wind-drifted, S toggles), pylon racing (terrain.def gates, legacy crossing test, clock + arrow marker + gate.wav).
 4. 9947b76 — Recorder/demo: legacy .dat format round-trips; stock demo.dat plays as the looping menu-background demo flight.
 
-## Remaining (candidates to split off)
+5. ac2da1f — Field actors: tractor (terrain-following drive pattern, spinning wheels), birds flock (legacy boids incl. aircraft scare), scarecrow game (cornfields, crop drain, arrow + status), bombing target; in-flight Game panel (Free flight / Racing / Scarecrow / Bombing).
+6. 25324bc — Aerotow: SF260 towplane plays stock towing.dat; cable fed to the compiled-in UpdateCable physics in NED space; rope quad visual; T hooks up/releases; auto-release at 70 s.
+7. (this commit) — Lens flare: five flare billboards along the sun line, frustum-gated, LensFlare setting + Graphics checkbox.
 
-- Towing (towplane AI + rope physics; towing.dat exists for demo)
-- Bombing, Birds, ScareCrow, Tractor (ambient/gameplay actors)
-- Lens flare (renderer feature)
-- Graphics detail settings currently persist but only SmokeDetail is consumed
+## Acceptance notes
+
+- Settings dialogs: all present in ImGui and persisted (weather, sim, graphics, sound, controls incl. move-the-stick calibration).
+- Racing, towing, bombing, birds (+ scarecrow, tractor, windsock, variometer, smoke, lens flare) work as ported from the legacy sources.
+- Recorder records/replays the legacy .dat format; stock demo.dat is the menu-background demo flight.
+- No DXUT patterns in any new code; audio (issue 12) integrated across engine/wind/variometer/gate/crash paths.
+
+Deviations: everything is hosted in the TestHost GameShell until RCSim proper is resurrected at issue 17's gate; SceneryDetail/WaterDetail/ReflectionDetail persist but are not yet consumed by the renderer (water/reflection features read their own paths); RollExpo/PitchExpo/YawExpo and the welcome dialog were not ported.

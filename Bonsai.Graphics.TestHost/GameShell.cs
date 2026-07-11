@@ -116,6 +116,7 @@ namespace Bonsai.Graphics.TestHost
             ScareCrowGame scarecrow = null;
             BombingTarget bombing = null;
             TowingGame towing = null;
+            LensFlare lensFlare = null;
             DemoPlayback demo = null;
             var recorder = new FlightRecorder();
             bool quit = false;
@@ -126,7 +127,7 @@ namespace Bonsai.Graphics.TestHost
 
             // Test assertions
             bool sawFlying = false, sawAirborne = false, windReachedModel = false, backToMenu = false;
-            bool sawSettings = false, sawSmoke = false, raceStarts = false, demoPlays = false, actorsWork = false, towWorks = false;
+            bool sawSettings = false, sawSmoke = false, raceStarts = false, demoPlays = false, actorsWork = false, towWorks = false, flareWorks = false;
             Vector3 demoPosA = default;
             byte[] shotMenu = null, shotFlight = null;
 
@@ -146,6 +147,7 @@ namespace Bonsai.Graphics.TestHost
                 if (scarecrow != null) { scarecrow.Dispose(); scarecrow = null; }
                 if (bombing != null) { bombing.Dispose(); bombing = null; }
                 if (towing != null) { towing.Dispose(); towing = null; }
+                if (lensFlare != null) { lensFlare.Dispose(); lensFlare = null; }
                 if (session != null) { session.Dispose(); session = null; }
                 kbThrottle = kbElevator = kbAileron = kbRudder = 0;
                 screen = Screen.MainMenu;
@@ -156,6 +158,8 @@ namespace Bonsai.Graphics.TestHost
                 session = new FlightSession(device, renderer, repoRoot,
                     pickedAircraft ?? Path.Combine(aircraftRoot, "extra", "Xtra.par"), pickedScenery, settings);
                 ApplyWeatherSettings(settings, session.Wind);
+                if (settings.GetInt("LensFlare", 1) == 1)
+                    lensFlare = new LensFlare(device, renderer, session.World, dataDir);
                 screen = Screen.Flying;
             }
 
@@ -236,6 +240,16 @@ namespace Bonsai.Graphics.TestHost
                             }
                         }
                     }
+                    if (frame == 310 && session != null && lensFlare != null)
+                    {
+                        // Sun in view -> flares visible; sun behind -> hidden.
+                        var probe = new Camera { Position = Vector3.Zero, Target = LensFlare.SunPosition, AspectRatio = 1.78f };
+                        lensFlare.Update(probe);
+                        bool onWhenFacing = lensFlare.FlareVisible;
+                        probe.Target = -LensFlare.SunPosition;
+                        lensFlare.Update(probe);
+                        flareWorks = onWhenFacing && !lensFlare.FlareVisible;
+                    }
                     if (frame == 330 && session != null) towToggleRequested = true; // hook up the tow
                     if (frame == 435 && session != null && towing != null && session.Model.CableEnabled)
                     {
@@ -308,6 +322,8 @@ namespace Bonsai.Graphics.TestHost
                     flightCamera.Target = aircraftPosition;
                     float distance = Vector3.Distance(flightCamera.Position, aircraftPosition);
                     flightCamera.FieldOfView = (float)Math.PI / 4 / Math.Max(1.5f, distance / 40f);
+                    if (lensFlare != null)
+                        lensFlare.Update(flightCamera);
                     camera = flightCamera;
                     world = session.World;
                 }
@@ -397,12 +413,13 @@ namespace Bonsai.Graphics.TestHost
             Console.WriteLine("race clock      : {0}", raceStarts ? "OK" : "FAILED");
             Console.WriteLine("scarecrow/birds : {0}", actorsWork ? "OK" : "FAILED");
             Console.WriteLine("aerotow         : {0}", towWorks ? "OK" : "FAILED");
+            Console.WriteLine("lens flare      : {0}", flareWorks ? "OK" : "FAILED");
             Console.WriteLine("recorder r/t    : {0}", recordingWorks ? "OK" : "FAILED");
             Console.WriteLine("menu demo plays : {0}", demoPlays ? "OK" : "FAILED");
             Console.WriteLine("flight -> menu  : {0}", backToMenu ? "OK" : "FAILED");
             Console.WriteLine("debug errors    : {0}", debugErrors);
             bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke
-                && raceStarts && actorsWork && towWorks && recordingWorks && demoPlays && backToMenu && debugErrors == 0;
+                && raceStarts && actorsWork && towWorks && flareWorks && recordingWorks && demoPlays && backToMenu && debugErrors == 0;
             Console.WriteLine(pass ? "GAMETEST PASS" : "GAMETEST FAIL");
             return pass ? 0 : 1;
         }
@@ -635,6 +652,8 @@ namespace Bonsai.Graphics.TestHost
                     DetailCombo(settings, "Water ripples", "WaterRipplesDetail");
                     DetailCombo(settings, "Reflections", "ReflectionDetail");
                     DetailCombo(settings, "Smoke detail", "SmokeDetail");
+                    bool flare = settings.GetInt("LensFlare", 1) == 1;
+                    if (ImGui.Checkbox("Lens flare", ref flare)) settings.SetInt("LensFlare", flare ? 1 : 0);
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Sound"))
