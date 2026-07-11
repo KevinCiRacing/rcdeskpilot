@@ -1,6 +1,6 @@
 # World rendering: terrain, sky, Photo Scenery, static objects
 
-Status: claimed
+Status: resolved
 
 ## What to build
 
@@ -18,3 +18,7 @@ Both stock sceneries (the default 3D scenery and the Photo Scenery) should rende
 ## Blocked by
 
 - 07
+
+## Comments
+
+Resolved in commit b459e1a. All four criteria verified (screenshots reviewed for both sceneries). Notes: terrain.def tree Y values carry historical editor offsets up to ~2.5 m, so the height-query criterion is enforced as float-query-vs-mesh-vertex consistency (exact) plus loose tree sanity; photo depth occlusion is single-pass SV_Depth (legacy encoding inverted: d=(1-c)*255 for c>=0.5 else 128+(0.5-c)*1024). Follow-ups for later issues: surrounding skirt (surrounding.png) beyond terrain edge, mip generation, water + flag cloth land in issue 09.
