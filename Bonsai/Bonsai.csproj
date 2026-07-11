@@ -6,15 +6,9 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
   <ItemGroup>
-    <!-- DX12 renderer, input, audio (ADR 0001/0002) -->
-    <PackageReference Include="Vortice.Direct3D12" Version="3.6.2" />
-    <PackageReference Include="Vortice.DXGI" Version="3.6.2" />
+    <!-- Input and audio replacements (ADR 0001); the renderer stack lives
+         in the new Bonsai.Graphics project. -->
     <PackageReference Include="Vortice.DirectInput" Version="3.6.2" />
     <PackageReference Include="Vortice.XAudio2" Version="3.6.2" />
-    <PackageReference Include="Vortice.Dxc" Version="3.6.2" />
-    <!-- Runtime .X/glTF/OBJ mesh import (ADR 0004) -->
-    <PackageReference Include="AssimpNet" Version="4.1.0" />
-    <!-- UI (ADR 0003) -->
-    <PackageReference Include="Hexa.NET.ImGui" Version="2.2.7" />
   </ItemGroup>
 </Project>

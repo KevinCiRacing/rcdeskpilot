@@ -1,6 +1,6 @@
 # DX12 bootstrap: window, device, swapchain, first triangle
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 

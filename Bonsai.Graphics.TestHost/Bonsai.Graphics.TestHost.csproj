@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Bootstrap host proving the DX12 device layer end-to-end (issue 06):
+       Win32 window, clear+present loop, first triangle. Also serves as the
+       renderer's ongoing smoke test via the selftest switch. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Bonsai.Graphics.TestHost</RootNamespace>
+    <AssemblyName>Bonsai.Graphics.TestHost</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Bonsai.Graphics\Bonsai.Graphics.csproj" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+</Project>

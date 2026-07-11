@@ -13,12 +13,18 @@ All active projects: SDK-style, `net10.0-windows` (satisfies the "modern .NET"
 decision; .NET 10 is the current LTS), x64, shared props in `Directory.Build.props`.
 
 ```
-Bonsai (engine lib)
-├── Vortice.Direct3D12 / Vortice.DXGI / Vortice.Dxc   ← renderer (issues 06-09)
-├── Vortice.DirectInput                                ← input (issue 11)
-├── Vortice.XAudio2                                    ← audio (issue 12)
+Bonsai.Graphics (NEW: clean DX12 renderer core, host-agnostic per ADR 0002)
+├── Vortice.Direct3D12 / Vortice.DXGI / Vortice.Dxc   ← device layer (issue 06: DONE)
 ├── AssimpNet                                          ← .X/glTF import (issue 07)
 └── Hexa.NET.ImGui                                     ← UI (issue 10)
+
+Bonsai.Graphics.TestHost (NEW: WinExe smoke test; `--selftest` renders 80
+frames through resize + borderless fullscreen + restore, verifies the
+triangle in a readback screenshot and zero debug-layer errors)
+
+Bonsai (legacy engine lib — DARK, ported/absorbed piece by piece)
+├── Vortice.DirectInput                                ← input (issue 11)
+└── Vortice.XAudio2                                    ← audio (issue 12)
 
 RCDeskPilot.API (lib, no deps)      ← plugin surface PARKED*, assembly still
                                        builds: RCSim compiles against its types

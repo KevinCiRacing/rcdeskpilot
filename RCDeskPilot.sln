@@ -16,6 +16,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCDeskPilot.API", "RCDeskPi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCSim.Characterization", "RCSim.Characterization\RCSim.Characterization.csproj", "{A1B2C3D4-1111-4222-8333-944444444401}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bonsai.Graphics", "Bonsai.Graphics\Bonsai.Graphics.csproj", "{A1B2C3D4-2222-4222-8333-944444444402}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bonsai.Graphics.TestHost", "Bonsai.Graphics.TestHost\Bonsai.Graphics.TestHost.csproj", "{A1B2C3D4-3333-4222-8333-944444444403}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +54,14 @@ Global
 		{A1B2C3D4-1111-4222-8333-944444444401}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1B2C3D4-1111-4222-8333-944444444401}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-1111-4222-8333-944444444401}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-2222-4222-8333-944444444402}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-2222-4222-8333-944444444402}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-2222-4222-8333-944444444402}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-2222-4222-8333-944444444402}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-3333-4222-8333-944444444403}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-3333-4222-8333-944444444403}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-3333-4222-8333-944444444403}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-3333-4222-8333-944444444403}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
