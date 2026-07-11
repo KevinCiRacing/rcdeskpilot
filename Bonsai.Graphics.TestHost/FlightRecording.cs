@@ -122,6 +122,10 @@ namespace Bonsai.Graphics.TestHost
         public string AircraftPar { get; }
         public bool Playing { get; private set; }
         public Vector3 Position { get; private set; }
+        /// <summary>Sample-derived world velocity (legacy Towing feed).</summary>
+        public Vector3 Velocity { get; private set; }
+        /// <summary>Seconds into the recording.</summary>
+        public double Time { get; private set; }
         public Vector3 YawPitchRoll { get; private set; }
         public double Throttle { get; private set; }
         public double Rudder { get; private set; }
@@ -167,9 +171,13 @@ namespace Bonsai.Graphics.TestHost
                 }
             }
 
+            Time = relativeTime;
             float factor = nextTime > previousTime
                 ? (float)((relativeTime - previousTime) / (nextTime - previousTime)) : 0f;
             Position = Vector3.Lerp(previousState.Position, nextState.Position, factor);
+            Velocity = nextTime > previousTime
+                ? (nextState.Position - previousState.Position) / (float)(nextTime - previousTime)
+                : Vector3.Zero;
             YawPitchRoll = new Vector3(
                 LerpAngle(previousState.Orientation.X, nextState.Orientation.X, factor),
                 LerpAngle(previousState.Orientation.Y, nextState.Orientation.Y, factor),

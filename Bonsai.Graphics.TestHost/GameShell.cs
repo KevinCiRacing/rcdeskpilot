@@ -115,16 +115,18 @@ namespace Bonsai.Graphics.TestHost
             RaceGame race = null;
             ScareCrowGame scarecrow = null;
             BombingTarget bombing = null;
+            TowingGame towing = null;
             DemoPlayback demo = null;
             var recorder = new FlightRecorder();
             bool quit = false;
             bool escPressed = false;
+            bool towToggleRequested = false;
             float kbThrottle = 0, kbElevator = 0, kbAileron = 0, kbRudder = 0;
             int frame = 0;
 
             // Test assertions
             bool sawFlying = false, sawAirborne = false, windReachedModel = false, backToMenu = false;
-            bool sawSettings = false, sawSmoke = false, raceStarts = false, demoPlays = false, actorsWork = false;
+            bool sawSettings = false, sawSmoke = false, raceStarts = false, demoPlays = false, actorsWork = false, towWorks = false;
             Vector3 demoPosA = default;
             byte[] shotMenu = null, shotFlight = null;
 
@@ -133,6 +135,8 @@ namespace Bonsai.Graphics.TestHost
                 if (key == 0x1B) escPressed = true;
                 if (key == (int)InputKey.R && session != null && session.Model.Crashed) session.Reset();
                 if (key == (int)InputKey.S && session != null) session.SmokeEmitting = !session.SmokeEmitting;
+                if (key == (int)InputKey.T && session != null && session.Parameters.AllowsTowing)
+                    towToggleRequested = true;
             };
 
             void EndFlight()
@@ -141,6 +145,7 @@ namespace Bonsai.Graphics.TestHost
                 if (race != null) { race.Dispose(); race = null; }
                 if (scarecrow != null) { scarecrow.Dispose(); scarecrow = null; }
                 if (bombing != null) { bombing.Dispose(); bombing = null; }
+                if (towing != null) { towing.Dispose(); towing = null; }
                 if (session != null) { session.Dispose(); session = null; }
                 kbThrottle = kbElevator = kbAileron = kbRudder = 0;
                 screen = Screen.MainMenu;
@@ -182,10 +187,18 @@ namespace Bonsai.Graphics.TestHost
                         float t = (frame - 20) / 60f;
                         // Takeoff/climb only (no dive): full throttle, altitude-hold elevator.
                         var c = session.Controls;
-                        c.Throttle = 1.0;
-                        c.Elevator = Math.Clamp(0.02 * (40f - session.Altitude) + 0.03 * session.Model.Velocity.Z, -0.15, 0.6);
-                        c.Ailerons = Math.Clamp(-0.8 * session.Model.Roll, -0.4, 0.4);
-                        c.Rudder = 0;
+                        if (frame < 330)
+                        {
+                            c.Throttle = 1.0;
+                            c.Elevator = Math.Clamp(0.02 * (40f - session.Altitude) + 0.03 * session.Model.Velocity.Z, -0.15, 0.6);
+                            c.Ailerons = Math.Clamp(-0.8 * session.Model.Roll, -0.4, 0.4);
+                            c.Rudder = 0;
+                        }
+                        else
+                        {
+                            // Towing phase: engine off, the cable does the work.
+                            c.Throttle = 0; c.Elevator = 0; c.Ailerons = 0; c.Rudder = 0;
+                        }
                         if (frame == 120)
                         {
                             session.Wind.ConstantWindSpeed = 5.0;
@@ -222,6 +235,12 @@ namespace Bonsai.Graphics.TestHost
                                 raceStarts = testRace.Racing && testRace.CurrentGate == 1;
                             }
                         }
+                    }
+                    if (frame == 330 && session != null) towToggleRequested = true; // hook up the tow
+                    if (frame == 435 && session != null && towing != null && session.Model.CableEnabled)
+                    {
+                        float towDistance = Vector3.Distance(session.AircraftPosition, towing.TowplanePosition);
+                        towWorks = towDistance < 20f && towDistance > 1f;
                     }
                     if (frame == 440) { EndFlight(); }
                     if (frame == 445 && screen == Screen.MainMenu && session == null) backToMenu = true;
@@ -261,6 +280,30 @@ namespace Bonsai.Graphics.TestHost
                         race.Update(aircraftPosition, frame / 60.0);
                     if (scarecrow != null)
                         scarecrow.Update(aircraftPosition, flightCamera.Position, frame / 60.0, 1f / 60f);
+
+                    // Aerotow (legacy T toggle: hook up / release).
+                    if (towToggleRequested)
+                    {
+                        towToggleRequested = false;
+                        if (!session.Model.CableEnabled)
+                        {
+                            if (towing != null) towing.Dispose();
+                            session.Reset();
+                            towing = new TowingGame(device, renderer, session.World, repoRoot);
+                            session.Model.CableEnabled = true;
+                            session.Model.CableLength = 10f;
+                        }
+                        else
+                        {
+                            session.Model.CableEnabled = false;
+                        }
+                    }
+                    if (towing != null && !towing.Update(session, flightCamera.Position, frame / 60.0))
+                    {
+                        towing.Dispose();
+                        towing = null;
+                    }
+
                     recorder.Sample(frame / 60.0, session);
                     flightCamera.Target = aircraftPosition;
                     float distance = Vector3.Distance(flightCamera.Position, aircraftPosition);
@@ -353,12 +396,13 @@ namespace Bonsai.Graphics.TestHost
             Console.WriteLine("smoke trail     : {0}", sawSmoke ? "OK" : "FAILED");
             Console.WriteLine("race clock      : {0}", raceStarts ? "OK" : "FAILED");
             Console.WriteLine("scarecrow/birds : {0}", actorsWork ? "OK" : "FAILED");
+            Console.WriteLine("aerotow         : {0}", towWorks ? "OK" : "FAILED");
             Console.WriteLine("recorder r/t    : {0}", recordingWorks ? "OK" : "FAILED");
             Console.WriteLine("menu demo plays : {0}", demoPlays ? "OK" : "FAILED");
             Console.WriteLine("flight -> menu  : {0}", backToMenu ? "OK" : "FAILED");
             Console.WriteLine("debug errors    : {0}", debugErrors);
             bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke
-                && raceStarts && actorsWork && recordingWorks && demoPlays && backToMenu && debugErrors == 0;
+                && raceStarts && actorsWork && towWorks && recordingWorks && demoPlays && backToMenu && debugErrors == 0;
             Console.WriteLine(pass ? "GAMETEST PASS" : "GAMETEST FAIL");
             return pass ? 0 : 1;
         }
