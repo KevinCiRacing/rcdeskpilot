@@ -112,6 +112,7 @@ namespace Bonsai.Graphics.TestHost
             string pickedAircraft = null;
             string pickedScenery = "default";
             FlightSession session = null;
+            RaceGame race = null;
             bool quit = false;
             bool escPressed = false;
             float kbThrottle = 0, kbElevator = 0, kbAileron = 0, kbRudder = 0;
@@ -119,7 +120,7 @@ namespace Bonsai.Graphics.TestHost
 
             // Test assertions
             bool sawFlying = false, sawAirborne = false, windReachedModel = false, backToMenu = false;
-            bool sawSettings = false, sawSmoke = false;
+            bool sawSettings = false, sawSmoke = false, raceStarts = false;
             byte[] shotMenu = null, shotFlight = null;
 
             window.KeyDown += key =>
@@ -131,6 +132,7 @@ namespace Bonsai.Graphics.TestHost
 
             void EndFlight()
             {
+                if (race != null) { race.Dispose(); race = null; }
                 if (session != null) { session.Dispose(); session = null; }
                 kbThrottle = kbElevator = kbAileron = kbRudder = 0;
                 screen = Screen.MainMenu;
@@ -185,6 +187,19 @@ namespace Bonsai.Graphics.TestHost
                         if (session.Altitude > 10f) sawAirborne = true;
                         if (frame == 200) session.SmokeEmitting = true;
                         if (frame > 260 && session.SmokeParticles > 10) sawSmoke = true;
+                        if (frame == 300)
+                        {
+                            // Race logic: a synthetic path through gate 0 must start the clock.
+                            using (var testRace = new RaceGame(device, renderer, session.World,
+                                Path.Combine(repoRoot, "RCSim", "data", "scenery", "default"),
+                                Path.Combine(repoRoot, "RCSim", "data")))
+                            {
+                                testRace.Restart(5.0);
+                                testRace.Update(new Vector3(-60f, 1f, 0f), 5.0);
+                                testRace.Update(new Vector3(-48f, 1f, 0f), 5.1);
+                                raceStarts = testRace.Racing && testRace.CurrentGate == 1;
+                            }
+                        }
                     }
                     if (frame == 440) { EndFlight(); }
                     if (frame == 445 && screen == Screen.MainMenu && session == null) backToMenu = true;
@@ -217,6 +232,8 @@ namespace Bonsai.Graphics.TestHost
                 {
                     session.Step(1f / 60f, flightCamera.Position);
                     Vector3 aircraftPosition = session.AircraftPosition;
+                    if (race != null)
+                        race.Update(aircraftPosition, frame / 60.0);
                     flightCamera.Target = aircraftPosition;
                     float distance = Vector3.Distance(flightCamera.Position, aircraftPosition);
                     flightCamera.FieldOfView = (float)Math.PI / 4 / Math.Max(1.5f, distance / 40f);
@@ -230,6 +247,7 @@ namespace Bonsai.Graphics.TestHost
                 {
                     FlightDemo.DrawHud(session.Model, session.Controls, session.Altitude, session.Model.Speed);
                     DrawWeatherPanel(session.Wind, device, settings);
+                    DrawRacePanel(ref race, session, device, renderer, repoRoot, pickedScenery, frame / 60.0);
                 }
                 else if (screen == Screen.Settings)
                 {
@@ -270,9 +288,10 @@ namespace Bonsai.Graphics.TestHost
             Console.WriteLine("airborne        : {0}", sawAirborne ? "OK" : "FAILED");
             Console.WriteLine("wind -> model   : {0}", windReachedModel ? "OK" : "FAILED");
             Console.WriteLine("smoke trail     : {0}", sawSmoke ? "OK" : "FAILED");
+            Console.WriteLine("race clock      : {0}", raceStarts ? "OK" : "FAILED");
             Console.WriteLine("flight -> menu  : {0}", backToMenu ? "OK" : "FAILED");
             Console.WriteLine("debug errors    : {0}", debugErrors);
-            bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke && backToMenu && debugErrors == 0;
+            bool pass = sawFlying && sawSettings && settingsPersisted && sawAirborne && windReachedModel && sawSmoke && raceStarts && backToMenu && debugErrors == 0;
             Console.WriteLine(pass ? "GAMETEST PASS" : "GAMETEST FAIL");
             return pass ? 0 : 1;
         }
@@ -400,6 +419,45 @@ namespace Bonsai.Graphics.TestHost
 
             ImGui.Text(string.Format("current {0:F1} m/s", wind.CurrentWind.Length()));
             ImGui.End();
+        }
+
+        private static void DrawRacePanel(ref RaceGame race, FlightSession session, GraphicsDevice device,
+            SceneRenderer renderer, string repoRoot, string sceneryName, double time)
+        {
+            ImGui.SetNextWindowPos(new Vector2(16, device.Height - 96), ImGuiCond.Once);
+            ImGui.SetNextWindowSize(new Vector2(230, 80), ImGuiCond.Once);
+            ImGui.Begin("Race");
+            if (race == null)
+            {
+                if (ImGui.Button("Start race", new Vector2(160, 32)))
+                {
+                    string sceneryDir = Path.Combine(repoRoot, "RCSim", "data", "scenery", sceneryName);
+                    if (File.Exists(Path.Combine(sceneryDir, "terrain.def")))
+                    {
+                        race = new RaceGame(device, renderer, session.World, sceneryDir,
+                            Path.Combine(repoRoot, "RCSim", "data"));
+                        race.Restart(time);
+                    }
+                }
+            }
+            else if (ImGui.Button("Stop race", new Vector2(160, 32)))
+            {
+                race.Dispose();
+                race = null;
+            }
+            ImGui.End();
+
+            // Centered game text (legacy CenterHud.ShowGameText).
+            string status = race != null ? race.StatusText : null;
+            if (!string.IsNullOrEmpty(status))
+            {
+                var io = ImGui.GetIO();
+                Vector2 size = ImGui.CalcTextSize(status);
+                ImGui.SetNextWindowPos(new Vector2(io.DisplaySize.X / 2 - size.X / 2 - 12, 60));
+                ImGui.Begin("##gametext", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoInputs);
+                ImGui.Text(status);
+                ImGui.End();
+            }
         }
 
         private static readonly string[] DetailLevels = { "Low", "Medium", "High" };
