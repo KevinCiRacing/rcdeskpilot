@@ -1,6 +1,6 @@
 # Effect Materials: water, cloth, transparency, particles
 
-Status: ready-for-agent
+Status: claimed
 
 ## What to build
 

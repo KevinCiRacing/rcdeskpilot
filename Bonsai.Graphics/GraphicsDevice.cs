@@ -236,6 +236,16 @@ namespace Bonsai.Graphics
             return commandList;
         }
 
+        /// <summary>Rebinds the swapchain render target + depth and restores
+        /// viewport/scissor (after an offscreen render-to-texture pass).</summary>
+        public void BindBackbuffer(ID3D12GraphicsCommandList4 list)
+        {
+            CpuDescriptorHandle rtvHandle = rtvHeap.GetCPUDescriptorHandleForHeapStart() + frameIndex * rtvDescriptorSize;
+            list.OMSetRenderTargets(rtvHandle, dsvHeap.GetCPUDescriptorHandleForHeapStart());
+            list.RSSetViewport(new Viewport(0, 0, Width, Height, 0.0f, 1.0f));
+            list.RSSetScissorRect(new RectI(0, 0, Width, Height));
+        }
+
         /// <summary>Ends the frame: transitions to present, executes, presents (vsync), and advances the fence.</summary>
         public void EndFrame()
         {

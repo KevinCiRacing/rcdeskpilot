@@ -56,6 +56,14 @@ float4 PSMain(PSInput input) : SV_TARGET
         [STAThread]
         private static int Main(string[] args)
         {
+            // Effect materials demo/selftest (issue 09)
+            if (Array.IndexOf(args, "--effects") >= 0 || Array.IndexOf(args, "--effectstest") >= 0)
+            {
+                string effectsOut = args.Length > 1 && !args[args.Length - 1].StartsWith("--")
+                    ? args[args.Length - 1] : Environment.CurrentDirectory;
+                return EffectsDemo.Run(FindRepoRoot(), Array.IndexOf(args, "--effectstest") >= 0, effectsOut);
+            }
+
             // World rendering demo/selftest (issue 08)
             if (Array.IndexOf(args, "--scenery") >= 0 || Array.IndexOf(args, "--scenerytest") >= 0 ||
                 Array.IndexOf(args, "--photo") >= 0 || Array.IndexOf(args, "--phototest") >= 0)

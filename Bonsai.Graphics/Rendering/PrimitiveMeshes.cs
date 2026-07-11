@@ -87,6 +87,33 @@ namespace Bonsai.Graphics.Rendering
             return new Mesh(device, vertices, indices);
         }
 
+        /// <summary>Subdivided grid in the XY plane, x in [0,width], y in [0,height]
+        /// (cloth hinged at x = 0, as flag.fx expects), normal +Z.</summary>
+        public static Mesh BuildGrid(GraphicsDevice device, float width, float height, int nx, int ny)
+        {
+            var vertices = new VertexPositionNormalTexture[(nx + 1) * (ny + 1)];
+            int pos = 0;
+            for (int row = 0; row <= ny; row++)
+                for (int col = 0; col <= nx; col++)
+                {
+                    vertices[pos].Position = new Vector3(width * col / nx, height * row / ny, 0);
+                    vertices[pos].Normal = Vector3.UnitZ;
+                    vertices[pos].TexCoord = new Vector2((float)col / nx, 1f - (float)row / ny);
+                    pos++;
+                }
+            var indices = new uint[nx * ny * 6];
+            int index = 0;
+            for (int row = 0; row < ny; row++)
+                for (int col = 0; col < nx; col++)
+                {
+                    uint a = (uint)(row * (nx + 1) + col);
+                    uint b = a + 1, c = a + (uint)(nx + 1), d = c + 1;
+                    indices[index++] = a; indices[index++] = b; indices[index++] = c;
+                    indices[index++] = b; indices[index++] = d; indices[index++] = c;
+                }
+            return new Mesh(device, vertices, indices);
+        }
+
         /// <summary>
         /// A quad of half-extent size. axisU/axisV span the surface; vertices are
         /// center + (u * axisU + v * axisV) * size for u,v in [-1,1]; the normal

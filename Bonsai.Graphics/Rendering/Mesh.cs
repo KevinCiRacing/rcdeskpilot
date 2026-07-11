@@ -24,6 +24,7 @@ namespace Bonsai.Graphics.Rendering
         public VertexBufferView VertexBufferView { get; private set; }
         public IndexBufferView IndexBufferView { get; private set; }
         public int IndexCount { get; private set; }
+        public bool IsDynamic { get { return true; } }
 
         /// <summary>Object-space bounds (useful for pivots and camera framing).</summary>
         public Vector3 BoundsMin { get; private set; }
@@ -64,6 +65,38 @@ namespace Bonsai.Graphics.Rendering
             }
             BoundsMin = min;
             BoundsMax = max;
+        }
+
+        /// <summary>
+        /// Creates a dynamic quad-list mesh: capacity for maxQuads billboards,
+        /// pre-built indices, vertices rewritten per frame via UpdateQuads.
+        /// </summary>
+        public static Mesh CreateDynamicQuads(GraphicsDevice device, int maxQuads)
+        {
+            var vertices = new VertexPositionNormalTexture[maxQuads * 4];
+            var indices = new uint[maxQuads * 6];
+            for (int q = 0; q < maxQuads; q++)
+            {
+                uint b = (uint)(q * 4);
+                int i = q * 6;
+                indices[i] = b; indices[i + 1] = b + 1; indices[i + 2] = b + 2;
+                indices[i + 3] = b; indices[i + 4] = b + 2; indices[i + 5] = b + 3;
+            }
+            var mesh = new Mesh(device, vertices, indices);
+            mesh.IndexCount = 0;
+            return mesh;
+        }
+
+        /// <summary>Rewrites the vertex buffer (upload heap) and sets the drawn quad count.</summary>
+        public unsafe void UpdateQuads(VertexPositionNormalTexture[] vertices, int quadCount)
+        {
+            int bytes = quadCount * 4 * VertexPositionNormalTexture.SizeInBytes;
+            void* mapped;
+            vertexBuffer.Map(0, null, &mapped).CheckError();
+            fixed (VertexPositionNormalTexture* src = vertices)
+                Buffer.MemoryCopy(src, mapped, VertexBufferView.SizeInBytes, bytes);
+            vertexBuffer.Unmap(0);
+            IndexCount = quadCount * 6;
         }
 
         public void Dispose()

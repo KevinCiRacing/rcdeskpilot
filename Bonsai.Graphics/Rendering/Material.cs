@@ -15,6 +15,14 @@ namespace Bonsai.Graphics.Rendering
         TerrainSplat,
         /// <summary>Photo Scenery panel: unlit color + per-pixel depth from a depth map.</summary>
         PhotoPanel,
+        /// <summary>Lit, alpha-blended, depth-read-only; drawn back-to-front after opaques.</summary>
+        TransparentLit,
+        /// <summary>Wind-driven cloth vertex animation (flag, windsock), lit.</summary>
+        FlagCloth,
+        /// <summary>Animated water: scrolling bump, planar reflection, ripples. TextureSet = [bump, reflection].</summary>
+        Water,
+        /// <summary>Unlit billboard particles; vertex alpha in Normal.X; blended, depth-read-only.</summary>
+        Particle,
     }
 
     /// <summary>
@@ -44,7 +52,18 @@ namespace Bonsai.Graphics.Rendering
         public float FarFactor2 = 1f, FarFactor3 = 1f, FarFactor4 = 5f;
         public float TerrainAmbient = 0.2f, TerrainSun = 0.6f;
 
+        /// <summary>Water parameters (legacy WaterEffects.fx spirit).</summary>
+        public float WaveLength = 0.1f, WaveHeight = 0.06f, WindForce = 0.1f;
+
+        /// <summary>Up to two active ripple disturbances: (x, z, ageSeconds, strength).</summary>
+        public Vector4 Ripple0, Ripple1;
+
         internal int SrvBaseSlot = -1;
+
+        internal bool IsTransparent
+        {
+            get { return Kind == MaterialKind.TransparentLit || Kind == MaterialKind.Particle || Kind == MaterialKind.Water; }
+        }
 
         public Material() { }
 

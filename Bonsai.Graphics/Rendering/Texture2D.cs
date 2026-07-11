@@ -21,7 +21,15 @@ namespace Bonsai.Graphics.Rendering
         /// <summary>Slot assigned by the renderer's SRV heap (set by SceneRenderer).</summary>
         internal int SrvIndex = -1;
 
+        private bool ownsResource = true;
+
         private Texture2D() { }
+
+        /// <summary>Wraps an externally owned resource (e.g. a render target).</summary>
+        public static Texture2D Wrap(ID3D12Resource resource, int width, int height, Format format)
+        {
+            return new Texture2D { resource = resource, Width = width, Height = height, Format = format, ownsResource = false };
+        }
 
         public static Texture2D Load(GraphicsDevice device, string path)
         {
@@ -184,7 +192,12 @@ namespace Bonsai.Graphics.Rendering
 
         public void Dispose()
         {
-            if (resource != null) { resource.Dispose(); resource = null; }
+            if (resource != null)
+            {
+                if (ownsResource)
+                    resource.Dispose();
+                resource = null;
+            }
         }
     }
 }
