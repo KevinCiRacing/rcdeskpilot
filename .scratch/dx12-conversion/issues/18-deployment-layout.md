@@ -1,6 +1,6 @@
 # Deployment layout and publish profile
 
-Status: needs-triage
+Status: migrated to GitHub Issues — https://github.com/KevinCiRacing/rcdeskpilot/issues/1
 
 ## What to build
 

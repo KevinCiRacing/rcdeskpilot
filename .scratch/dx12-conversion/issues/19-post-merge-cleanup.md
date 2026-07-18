@@ -1,6 +1,6 @@
 # Post-merge cleanup and deferred features
 
-Status: needs-triage
+Status: migrated to GitHub Issues — https://github.com/KevinCiRacing/rcdeskpilot/issues/2
 
 ## What to build
 
