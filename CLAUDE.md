@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live as local markdown files under `.scratch/<feature>/` in this repo. See `docs/agents/issue-tracker.md`.
+Issues live in this repo's GitHub Issues (KevinCiRacing/rcdeskpilot) via the `gh` CLI; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`. (The completed DX12-conversion issue history remains under `.scratch/dx12-conversion/`.)
 
 ### Triage labels
 
